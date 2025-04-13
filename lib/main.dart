@@ -1,0 +1,49 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:quizify/providers/theme_provider.dart';
+import 'router.dart';
+import 'providers/auth_provider.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final themeProvider = ThemeProvider();
+  await themeProvider.init();
+
+  runApp(MyApp(themeProvider: themeProvider));
+}
+
+class MyApp extends StatelessWidget {
+  final ThemeProvider themeProvider;
+
+  const MyApp({super.key, required this.themeProvider});
+
+  @override
+Widget build(BuildContext context) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
+    ],
+    child: Builder(
+      builder: (context) {
+        final auth = context.watch<AuthProvider>();
+        final themeData = context.watch<ThemeProvider>().themeData;
+        
+        // Always use MaterialApp.router to maintain router state
+        return MaterialApp.router(
+          routerConfig: router,
+          theme: themeData,
+          debugShowCheckedModeBanner: false,
+          // Show loading overlay if needed
+          builder: auth.isLoading 
+            ? (context, child) => Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              )
+            : null,
+        );
+      },
+    ),
+  );
+}
+}
