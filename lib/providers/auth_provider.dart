@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,14 +29,55 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();  // Notify listeners about the change in login state
   }
 
-  // Method to log in the user
-  Future<void> login() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('is_logged_in', true);
-    _isLoggedIn = true;
-    notifyListeners();  // Notify listeners about the change
-  }
+  // Method to log in the user using Firebase Authentication
+  Future<void> login(String email, String password) async {
+    try {
+      _isLoading = true;
+      
 
+      // Perform Firebase Authentication login
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      if (userCredential.user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setBool('is_logged_in', true);
+        _isLoggedIn = true;
+        notifyListeners(); // Notify listeners about the loading state
+      }
+    } catch (e) {
+      // Handle login error (e.g., invalid credentials)
+      print('Login failed: $e');
+      _isLoggedIn = false;
+      rethrow; // Rethrow the error to be handled in the UI
+    } finally {
+      _isLoading = false;
+    }
+  }
+  // Method to sign up the user using Firebase Authentication
+  Future<void> signup(String email, String password) async {
+    try {
+      _isLoading = true;
+
+      // Perform Firebase Authentication signup
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      if (userCredential.user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setBool('is_logged_in', true);
+        _isLoggedIn = true;
+        notifyListeners(); // Notify listeners about the login state
+      }
+    } catch (e) {
+      // Handle signup error (e.g., email already in use)
+      print('Signup failed: $e');
+      _isLoggedIn = false;
+      rethrow; // Rethrow the error to be handled in the UI
+    } finally {
+      _isLoading = false;
+    }
+  }
   // Method to log out the user
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();

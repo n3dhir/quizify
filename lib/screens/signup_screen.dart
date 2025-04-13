@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/router.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider.dart' as local_auth_provider;
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -11,7 +12,10 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  late final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  late final authProvider = Provider.of<local_auth_provider.AuthProvider>(
+    context,
+    listen: false,
+  );
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
@@ -22,9 +26,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _signup() async {
     if (_formKey.currentState!.validate()) {
       // handle signup logic
-      debugPrint('Email: ${_emailController.text}');
-      debugPrint('Password: ${_passwordController.text}');
-      await authProvider.login(); // Sign the user up
+      try {
+        debugPrint('Email: ${_emailController.text}');
+        debugPrint('Password: ${_passwordController.text}');
+        await authProvider.signup(
+          _emailController.text,
+          _passwordController.text,
+        ); // Sign the user up
+      } on FirebaseAuthException catch (e) {
+        var errorMessage = "Signup failed. Please try again later.";
+        if (e.code == 'email-already-in-use') {
+          errorMessage =
+              "The email is already registered. Please try logging in.";
+        }
+        if (e.code == 'network-request-failed') {
+          errorMessage =
+              "No internet connection. Please check your network settings.";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorMessage,
+              style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        debugPrint('Signup error: $e');
+      } catch (e) {
+        // Catch any other unexpected errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'An unexpected error occurred. Please try again later.',
+              style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        debugPrint('Unexpected error: $e');
+      }
     }
   }
 
@@ -33,9 +74,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return 'Please enter your email';
     }
 
-    final emailRegex = RegExp(
-      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-    );
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
@@ -151,8 +190,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your password' : null,
+                  validator:
+                      (value) =>
+                          value!.isEmpty ? 'Please enter your password' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -204,9 +244,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(4),
-                        ),
+                        borderRadius: BorderRadius.all(Radius.circular(4)),
                       ),
                     ),
                     child: const Text(

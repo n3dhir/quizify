@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/router.dart';
-import '../providers/auth_provider.dart';
+import '../providers/auth_provider.dart' as QuizifyAuthProvider;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  late final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  late final authProvider = Provider.of<QuizifyAuthProvider.AuthProvider>(context, listen: false);
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
@@ -20,21 +21,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
-      // handle login logic
-      debugPrint('Email: ${_emailController.text}');
-      debugPrint('Password: ${_passwordController.text}');
-      await authProvider.login(); // Log the user in
-    }
-    else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      try {
+        // handle login logic
+        debugPrint('Email: ${_emailController.text}');
+        debugPrint('Password: ${_passwordController.text}');
+        await authProvider.login(_emailController.text, _passwordController.text); // Log the user in
+      } on FirebaseAuthException catch (e) {
+        var errorMessage = "Login failed. Please try again later.";
+        if (e.code == 'invalid-credential') {
+          errorMessage = "Login failed. Please check your credentials.";
+        } else if (e.code == 'network-request-failed') {
+          errorMessage =
+          "No internet connection. Please check your network settings.";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+        content: Text(
+          errorMessage,
+          style: TextStyle(color: Theme.of(context).colorScheme.onError),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        debugPrint('Login error: $e');
+      } catch (e) {
+        // Catch any other unexpected errors
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Login failed. Please check your credentials.',
+              'An unexpected error occurred. Please try again later.',
               style: TextStyle(color: Theme.of(context).colorScheme.onError),
             ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
+        debugPrint('Unexpected error: $e');
+      }
     }
   }
 
