@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/providers/auth_provider.dart';
-// import 'package:quizify/providers/theme_provider.dart';
+import 'package:quizify/providers/theme_provider.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class AddQuizScreen extends StatelessWidget {
+  const AddQuizScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    // final themeProvider = Provider.of<ThemeProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text('Home'),
-        // actions: [
-        //   IconButton(
-        //     onPressed: () {
-        //       themeProvider.toggleTheme();
-        //     },
-        //     icon: Icon(
-        //       themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-        //       color: Theme.of(context).colorScheme.inverseSurface,
-        //     ),
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            onPressed: () {
+              themeProvider.toggleTheme();
+            },
+            icon: Icon(
+              themeProvider.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+              color: Theme.of(context).colorScheme.inverseSurface,
+            ),
+          ),
+        ],
       ),
       body: Center(
         
