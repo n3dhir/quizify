@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/providers/auth_provider.dart';
 import 'package:quizify/screens/add_quiz_screen.dart';
+import 'package:quizify/screens/onboarding_screen.dart';
 import 'package:quizify/screens/settings_screen.dart';
 import 'package:quizify/screens/signup_screen.dart';
 import 'screens/login_screen.dart';
@@ -126,7 +127,11 @@ final GoRouter router = GoRouter(
                 ),
               ],
             ),
-
+            GoRoute(
+                path: 'onboarding', // ✅ Removed leading slash
+                name: 'creator_onboarding',
+                builder: (context, state) => OnboardingScreen(),
+              ),
             // This one stays outside the ShellRoute
             GoRoute(
               path: 'add', // ✅ Relative to /creator, becomes /app/creator/add

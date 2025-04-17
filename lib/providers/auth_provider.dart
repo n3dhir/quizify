@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -64,6 +65,13 @@ class AuthProvider with ChangeNotifier {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user != null) {
+
+        CollectionReference users = FirebaseFirestore.instance.collection('users');
+          await users.doc(userCredential.user?.uid).set({
+            'email': userCredential.user?.email,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
         final prefs = await SharedPreferences.getInstance();
         prefs.setBool('is_logged_in', true);
         _isLoggedIn = true;

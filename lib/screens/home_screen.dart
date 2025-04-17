@@ -1,14 +1,59 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:quizify/providers/auth_provider.dart';
+import 'package:quizify/providers/auth_provider.dart' as quizify_auth;
 // import 'package:quizify/providers/theme_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _checkingOnboarding = true;
+   @override
+    void initState() {
+      super.initState();
+      _checkOnboardingStatus();
+    }
+
+    Future<void> _checkOnboardingStatus() async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final hasSeenOnboarding = userDoc.data()?['has_seen_onboarding'] ?? false;
+
+      if (!hasSeenOnboarding) {
+        context.go('/app/creator/onboarding');
+      }
+      else {
+        setState(() {
+          _checkingOnboarding = false;
+        });
+      }
+    }
+
+  @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+
+    if (_checkingOnboarding) {
+      // prevent flashing home screen
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final authProvider = Provider.of<quizify_auth.AuthProvider>(context);
     // final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
