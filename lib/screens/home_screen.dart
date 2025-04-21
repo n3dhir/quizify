@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/providers/auth_provider.dart' as quizify_auth;
-import 'package:quizify/screens/add_quiz_screen.dart';
 // import 'package:quizify/providers/theme_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -107,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 // Fallback image if no question has an image
+                // ? TODO: Use a default image URL
                 imageUrl ??=
                     'https://via.placeholder.com/400x200.png?text=Quiz+Image';
 
@@ -118,7 +118,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: InkWell(
                     onTap: () {
-                      context.go('/app/creator/edit/${quizzes[index].id}');
+                      context.go(
+                        "/app/creator/details/${quizzes[index].id}",
+                      );
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,10 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddQuizScreen()),
-          );
+          context.go('/app/creator/add');
         },
         label: Text('Add Quiz'),
         icon: Icon(Icons.add),

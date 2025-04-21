@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:quizify/providers/auth_provider.dart';
 import 'package:quizify/screens/add_quiz_screen.dart';
+import 'package:quizify/screens/join_quiz_screen.dart';
 import 'package:quizify/screens/onboarding_screen.dart';
+import 'package:quizify/screens/quiz_detail_screen.dart';
 import 'package:quizify/screens/settings_screen.dart';
 import 'package:quizify/screens/signup_screen.dart';
 import 'screens/login_screen.dart';
@@ -21,12 +23,12 @@ final GoRouter router = GoRouter(
     }
 
     // If not logged in and trying to access protected routes, redirect to login
-    if (!isLoggedIn && !goingTo.startsWith('/auth')) {
+    if (!isLoggedIn && (!goingTo.startsWith('/auth') && !goingTo.startsWith('/quiz'))) {
       return '/auth/login';
     }
 
     // If logged in and trying to go to login/signup, redirect to home
-    if (isLoggedIn && goingTo.startsWith('/auth')) {
+    if (isLoggedIn && (goingTo.startsWith('/auth') || goingTo.startsWith('/quiz'))) {
       return '/app/creator/home';
     }
 
@@ -57,6 +59,31 @@ final GoRouter router = GoRouter(
           builder:
               (BuildContext context, GoRouterState state) => SignUpScreen(),
         ),
+      ],
+    ),
+    GoRoute(
+      path: '/quiz',
+      redirect: (BuildContext context, GoRouterState state) {
+        final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
+        if (isLoggedIn) return '/app/creator/home'; // Redirect to home if logged in
+
+        // Redirect /auth to /auth/login
+        if (state.fullPath == '/quiz') {
+          return '/quiz/join';
+        }
+
+        return null; // No redirect needed
+      },
+      routes: [
+        GoRoute(
+          path: '/join',
+          builder: (BuildContext context, GoRouterState state) => JoinQuizScreen(),
+        ),
+        // GoRoute(
+        //   path: '/play',
+        //   builder:
+        //       (BuildContext context, GoRouterState state) => PlayQuizScreen(quizCode:),
+        // ),
       ],
     ),
 
@@ -138,19 +165,17 @@ final GoRouter router = GoRouter(
               name: 'creator_add',
               builder: (context, state) => AddQuizScreen(),
             ),
+            GoRoute(
+              path: 'details/:quiz_id', // ✅ Relative to /creator, becomes /app/creator/add
+              name: 'quiz_details',
+              builder: (context, state) {
+                final quizId = state.pathParameters['quiz_id']!;
+                return QuizDetailScreen(quiz_id: quizId);
+              }
+            ),
           ],
         ),
       ],
-      // routes: [
-      //   GoRoute(
-      //     path: 'home',
-      //     builder: (BuildContext context, GoRouterState state) => HomeScreen(),
-      //   ),
-      //   GoRoute(
-      //     path: 'settings',
-      //     builder: (BuildContext context, GoRouterState state) => SettingsScreen(),
-      //   ),
-      // ],
     ),
 
     // SplashScreen, it could also be part of the public routes, so it's fine as it is

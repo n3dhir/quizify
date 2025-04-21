@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:quizify/services/quizz_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -21,7 +23,6 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
   Timer? _debounce;
 
   final TextEditingController _quizTitleController = TextEditingController();
-  
 
   final PageController _pageController = PageController();
   final ImagePicker _picker = ImagePicker();
@@ -96,92 +97,123 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
     super.dispose();
   }
 
-  Future<void> _createQuiz() async {
-  if (_quizTitleController.text.trim().isEmpty || _questions.isEmpty || !_questions.every((q) => _isQuestionValid(q))) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Please ensure your quiz is valid.",
-          style: TextStyle(color: Theme.of(context).colorScheme.onError),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
-    return;
-  }
+  Future<String> generateUniqueQuizCode() async {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    Random rand = Random();
+    String quizCode = '';
 
-  try {
-    final firestore = FirebaseFirestore.instance;
-    final quizRef = firestore.collection('quizzes').doc();
-    final quizId = quizRef.id;
-
-    List<Map<String, dynamic>> questionList = [];
-
-    for (int i = 0; i < _questions.length; i++) {
-      var q = _questions[i];
-      String? imageUrl;
-
-      if (q['image'] != null) {
-        imageUrl = await uploadImageToBytescale(q['image'], quizId, i);
-      }
-
-      questionList.add({
-        'question': q['question'].text,
-        'imageUrl': imageUrl,
-        'options': q['options'].map((c) => c.text).toList(),
-        'correctAnswerIndex': q['correctAnswerIndex'],
-      });
+    // Generate a random code
+    for (int i = 0; i < 6; i++) {
+      quizCode += characters[rand.nextInt(characters.length)];
     }
 
-    await quizRef.set({
-      'title': _quizTitleController.text, // add more metadata if needed
-      'createdAt': FieldValue.serverTimestamp(),
-      'questions': questionList,
-      'creator_id': FirebaseAuth.instance.currentUser?.uid
-    });
+    // Check if the code exists in Firestore
+    final quizRef = FirebaseFirestore.instance.collection('quizzes');
+    final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
 
-    Navigator.pop(context);
+    // If code already exists, generate a new one
+    if (querySnapshot.docs.isNotEmpty) {
+      return generateUniqueQuizCode(); // Recursively call to generate a new unique code
+    }
 
-  } catch (e) {
-    print("Error creating quiz: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Failed to create quiz."),
-        backgroundColor: Colors.red,
-      ),
-    );
+    return quizCode; // Return unique code
   }
-}
 
+
+  Future<void> _createQuiz() async {
+    if (_quizTitleController.text.trim().isEmpty ||
+        _questions.isEmpty ||
+        !_questions.every((q) => _isQuestionValid(q))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Please ensure your quiz is valid.",
+            style: TextStyle(color: Theme.of(context).colorScheme.onError),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final quizRef = firestore.collection('quizzes').doc();
+      final quizId = quizRef.id;
+
+      List<Map<String, dynamic>> questionList = [];
+
+      for (int i = 0; i < _questions.length; i++) {
+        var q = _questions[i];
+        String? imageUrl;
+
+        if (q['image'] != null) {
+          imageUrl = await uploadImageToBytescale(q['image'], quizId, i);
+        }
+
+        questionList.add({
+          'question': q['question'].text,
+          'imageUrl': imageUrl,
+          'options': q['options'].map((c) => c.text).toList(),
+          'correctAnswerIndex': q['correctAnswerIndex'],
+        });
+      }
+
+      // generate the unique quiz code
+      String quizCode = await generateUniqueQuizCode();
+
+      await quizRef.set({
+        'title': _quizTitleController.text, // add more metadata if needed
+        'createdAt': FieldValue.serverTimestamp(),
+        'questions': questionList,
+        'quiz_code': quizCode,
+        'creator_id': FirebaseAuth.instance.currentUser?.uid,
+      });
+
+      context.go("/app/creator/home");
+    } catch (e) {
+      print("Error creating quiz: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to create quiz."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: SizedBox(
-    height: 40,
-    child: TextField(
-      controller: _quizTitleController,
-      style: TextStyle(
-        fontSize: 20,
-        // color: Colors.white,
-        color: Theme.of(context).colorScheme.onSurface,
-        fontWeight: FontWeight.bold,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            context.go('/app/creator/home');
+          },
+        ),
+        title: SizedBox(
+          height: 40,
+          child: TextField(
+            controller: _quizTitleController,
+            style: TextStyle(
+              fontSize: 20,
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: 'Enter Quiz Title',
+              hintStyle: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.inversePrimary.withOpacity(0.5),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ),
       ),
-      // cursorColor: Colors.white,
-      // textAlign: TextAlign.center,
-      decoration: InputDecoration(
-        border: InputBorder.none,
-        hintText: 'Enter Quiz Title',
-        hintStyle: TextStyle(color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.5)),
-        contentPadding: EdgeInsets.zero,
-      ),
-    ),
-  ),
-  // centerTitle: true,
-  // backgroundColor: Colors.deepPurple,
-),
-
       body: Column(
         children: [
           Expanded(

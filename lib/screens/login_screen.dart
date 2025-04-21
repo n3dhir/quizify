@@ -97,6 +97,20 @@ String? _validateEmail(String? value) {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Align(
+      alignment: Alignment.centerRight,
+      child: TextButton.icon(
+        onPressed: () {
+          router.go('/quiz/join'); // 👈 navigate to your join quiz route
+        },
+        icon: const Icon(Icons.arrow_forward),
+        label: const Text("Join a Quiz"),
+        style: TextButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.primary,
+          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+    ),
                 Text(
                   'Sign In',
                   style: TextStyle(
