@@ -108,7 +108,10 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        AdminQuizPlayScreen(quizData: quizData),
+                        AdminQuizPlayScreen(quizData: {
+                          'id': widget.quiz_id,
+                          ...quizData
+                          }),
                   ),
                 );
               },

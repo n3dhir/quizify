@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 class PlayQuizScreen extends StatefulWidget {
   final String quizCode;
@@ -15,6 +16,14 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
   final TextEditingController _nicknameController = TextEditingController();
   bool _joining = true;
   bool _submitted = false;
+  bool _quizStarted = false;
+  int _currentQuestionIndex = -1;
+  List<dynamic> _questions = [];
+  String? _selectedAnswer;
+  StreamSubscription<DocumentSnapshot>? _quizListener;
+  int _countdown = 30;
+  Timer? _timer;
+  bool _hasAnswered = false;
 
   @override
   void initState() {
@@ -22,23 +31,37 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     _checkIfAlreadyJoined();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _quizListener?.cancel();
+    _quizListener = null;
+
+    // Remove the participant from Firestore when the screen is disposed
+    _removeParticipant();
+
+    super.dispose();
+  }
+
   Future<void> _checkIfAlreadyJoined() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc = await FirebaseFirestore.instance
-        .collection('participants')
-        .doc(uid)
-        .get();
+
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('participants')
+            .doc(uid)
+            .get();
 
     if (doc.exists) {
       setState(() {
         _submitted = true;
-        _joining = false;
       });
-    } else {
-      setState(() {
-        _joining = false;
-      });
+      _listenToQuiz();
     }
+
+    setState(() {
+      _joining = false;
+    });
   }
 
   Future<void> _joinQuiz() async {
@@ -46,9 +69,9 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     final nickname = _nicknameController.text.trim();
 
     if (nickname.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a nickname")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Please enter a nickname")));
       return;
     }
 
@@ -57,55 +80,190 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
       'quiz_code': widget.quizCode,
       'joined_at': FieldValue.serverTimestamp(),
       'nickname': nickname,
+      'score': 0,
     });
 
     setState(() {
       _submitted = true;
     });
+
+    _listenToQuiz();
+  }
+
+  void _listenToQuiz() {
+    final quizRef = FirebaseFirestore.instance
+        .collection('quizzes')
+        .where('quiz_code', isEqualTo: widget.quizCode)
+        .limit(1);
+
+    quizRef.get().then((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final quizDoc = snapshot.docs.first;
+        final quizId = quizDoc.id;
+
+        _quizListener = FirebaseFirestore.instance
+            .collection('quizzes')
+            .doc(quizId)
+            .snapshots()
+            .listen((docSnapshot) {
+
+              print("heere  ");
+              final data = docSnapshot.data();
+              if (data == null) return;
+
+              final started = data['started'] ?? false;
+              final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
+              final questions = data['questions'] ?? [];
+
+              if (started && !_quizStarted) {
+                _quizStarted = true;
+              }
+
+              if (_currentQuestionIndex != currentQuestionIndex) {
+                _selectedAnswer = null;
+                _hasAnswered = false;
+                _startCountdown();
+              }
+
+              setState(() {
+                _quizStarted = started;
+                _currentQuestionIndex = currentQuestionIndex;
+                _questions = questions;
+              });
+            });
+      }
+    });
+  }
+
+  void _startCountdown() {
+    _countdown = 30;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown <= 0) {
+        timer.cancel();
+        if (!_hasAnswered) {
+          _submitAnswer(null); // Submit no answer
+        }
+      } else {
+        setState(() {
+          _countdown--;
+        });
+      }
+    });
+  }
+
+  Future<void> _submitAnswer(String? answer) async {
+    if (_hasAnswered) return;
+
+    _hasAnswered = true;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final question = _questions[_currentQuestionIndex];
+    final correct = answer == question['correctAnswer'];
+
+    if (correct) {
+      await FirebaseFirestore.instance
+          .collection('participants')
+          .doc(uid)
+          .update({'score': FieldValue.increment(1)});
+    }
+
+    setState(() {
+      _selectedAnswer = answer;
+    });
+  }
+
+  Future<void> _removeParticipant() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('participants')
+          .doc(uid)
+          .delete();
+    } catch (e) {
+      print("Error removing participant: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_joining) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!_submitted) {
       return Scaffold(
-        appBar: AppBar(title: Text('Joining Quiz...')),
-        body: Center(child: CircularProgressIndicator()),
+        appBar: AppBar(title: const Text('Join Quiz')),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text('Enter your nickname to join the quiz:'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nicknameController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Nickname',
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _joinQuiz,
+                child: const Text('Join Quiz'),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
+    if (!_quizStarted) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Quiz Lobby')),
+        body: const Center(child: Text('Waiting for quiz to start...')),
+      );
+    }
+
+    if (_currentQuestionIndex == -1 ||
+        _currentQuestionIndex >= _questions.length) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Quiz')),
+        body: const Center(child: Text('Waiting for next question...')),
+      );
+    }
+
+    final question = _questions[_currentQuestionIndex];
+    final options = List<String>.from(question['options'] ?? []);
+
     return Scaffold(
-      appBar: AppBar(title: Text('Quiz Lobby')),
+      appBar: AppBar(title: Text('Question ${_currentQuestionIndex + 1}')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _submitted
-            ? Center(
-                child: Text(
-                  'Waiting for quiz to start...',
-                  // style: Theme.of(context).textTheme.headline6,
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Enter your nickname to join the quiz:',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _nicknameController,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Nickname',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _joinQuiz,
-                    child: Text('Join Quiz'),
-                  ),
-                ],
-              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              question['question'] ?? 'No question',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Time left: $_countdown seconds',
+              style: const TextStyle(fontSize: 16, color: Colors.red),
+            ),
+            const SizedBox(height: 16),
+            ...options.map((option) {
+              final isSelected = option == _selectedAnswer;
+              return ListTile(
+                title: Text(option),
+                tileColor: isSelected ? Colors.blue[100] : null,
+                onTap: () => _submitAnswer(option),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

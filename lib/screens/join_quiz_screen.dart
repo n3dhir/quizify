@@ -38,13 +38,29 @@ class _JoinQuizScreenState extends State<JoinQuizScreen> {
         bool quizExists = await checkQuizExists(quizCode);
 
         if (quizExists) {
-          // Navigate to the quiz play screen
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PlayQuizScreen(quizCode: quizCode),
-            ),
-          );
+          // Check if the quiz has already started
+          bool quizStarted = await checkQuizStarted(quizCode);
+
+          if (quizStarted) {
+            // Show message to wait for the next round
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'The quiz has already started. Please wait for the next round.',
+                  style: TextStyle(color: Theme.of(context).colorScheme.onError),
+                ),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          } else {
+            // Navigate to the quiz play screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PlayQuizScreen(quizCode: quizCode),
+              ),
+            );
+          }
         } else {
           // Show error if quiz does not exist
           ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +93,17 @@ class _JoinQuizScreenState extends State<JoinQuizScreen> {
     final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
 
     return querySnapshot.docs.isNotEmpty;
+  }
+  
+  Future<bool> checkQuizStarted(String quizCode) async {
+    final quizRef = FirebaseFirestore.instance.collection('quizzes');
+    final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      final quizData = querySnapshot.docs.first.data();
+      return quizData['started'] == true;
+    }
+    return false;
   }
 
   @override
