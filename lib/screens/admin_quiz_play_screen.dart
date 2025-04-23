@@ -25,7 +25,6 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   int timeRemaining = 30;
 
   @override
-  @override
   void initState() {
     super.initState();
     quizId = widget.quizData['id'];
@@ -82,12 +81,30 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   }
 
   Future<void> _startQuiz() async {
-    await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update({
+    final batch = FirebaseFirestore.instance.batch();
+
+    // Reset scores for all participants
+    final participantsSnapshot =
+      await FirebaseFirestore.instance
+        .collection('participants')
+        .where('quiz_code', isEqualTo: quizCode)
+        .get();
+
+    for (var doc in participantsSnapshot.docs) {
+      batch.update(doc.reference, {'score': 0});
+    }
+
+    batch.update(
+      FirebaseFirestore.instance.collection('quizzes').doc(quizId),
+      {
       'started': true,
       'currentQuestionIndex': 0,
       'questionStartTime': FieldValue.serverTimestamp(),
       'ended': false,
-    });
+      },
+    );
+
+    await batch.commit();
   }
 
   Future<void> _nextQuestion() async {
@@ -187,7 +204,6 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
             if (!snapshot.hasData) return const CircularProgressIndicator();
             final participants = snapshot.data!.docs;
 
-            // print(participants);
 
             final allAnswered = participants.every(
               (p) => ((p.data() as Map<String, dynamic>).containsKey('answeredCurrentQuestion') == true && (p['answeredCurrentQuestion'] ?? false) == true),

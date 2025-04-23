@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:quizify/services/quizz_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
+
 class AddQuizScreen extends StatefulWidget {
   const AddQuizScreen({super.key});
 
@@ -42,6 +43,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
         'question': TextEditingController(),
         'options': [TextEditingController(), TextEditingController()],
         'correctAnswerIndex': 0,
+        'duration': 30,
         'image': null,
       });
 
@@ -109,7 +111,8 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
 
     // Check if the code exists in Firestore
     final quizRef = FirebaseFirestore.instance.collection('quizzes');
-    final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
+    final querySnapshot =
+        await quizRef.where('quiz_code', isEqualTo: quizCode).get();
 
     // If code already exists, generate a new one
     if (querySnapshot.docs.isNotEmpty) {
@@ -118,7 +121,6 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
 
     return quizCode; // Return unique code
   }
-
 
   Future<void> _createQuiz() async {
     if (_quizTitleController.text.trim().isEmpty ||
@@ -156,6 +158,7 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
           'imageUrl': imageUrl,
           'options': q['options'].map((c) => c.text).toList(),
           'correctAnswerIndex': q['correctAnswerIndex'],
+          'duration': q['duration'],
         });
       }
 
@@ -420,6 +423,36 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                                 ),
                               ],
                             ),
+                        SizedBox(height: 16),
+                        SliderTheme(
+                          data: SliderThemeData(
+                            activeTrackColor:
+                                Theme.of(context).colorScheme.primary, // Color of the active track
+                            inactiveTrackColor:
+                                Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2), // Color of the inactive track
+                            thumbColor:
+                                Theme.of(context).colorScheme.primary, // Color of the thumb (the draggable part)
+                            overlayColor: Theme.of(context).colorScheme.primary.withOpacity(
+                              0.2,
+                            ), // Color when the slider thumb is touched
+                            valueIndicatorColor:
+                                Theme.of(context).colorScheme.primary, // Color of the value indicator
+                            tickMarkShape: SliderTickMarkShape.noTickMark,
+                          ),
+                          child: Slider(
+                            value: q['duration'],
+                            min: 10,
+                            max: 60, // Maximum duration of 60 seconds
+                            divisions:
+                                10, // Dividing the range into 10 parts (5 seconds each)
+                            label: q['duration'].toString(),
+                            onChanged: (double value) {
+                              setState(() {
+                                q['duration'] = value;
+                              });
+                            },
+                          ),
+                        ),
                         SizedBox(height: 16),
                         TextField(
                           controller: q['question'],

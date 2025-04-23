@@ -17,6 +17,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
   bool _joining = true;
   bool _submitted = false;
   bool _quizStarted = false;
+  bool _quizEnded = false;
   int _currentQuestionIndex = -1;
   List<dynamic> _questions = [];
   String? _selectedAnswer;
@@ -106,18 +107,19 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
             .doc(quizId)
             .snapshots()
             .listen((docSnapshot) {
-
-              print("heere  ");
               final data = docSnapshot.data();
               if (data == null) return;
 
               final started = data['started'] ?? false;
+              final ended = data['ended'] ?? false;
               final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
               final questions = data['questions'] ?? [];
 
               if (started && !_quizStarted) {
                 _quizStarted = true;
               }
+
+              _quizEnded = ended;
 
               if (_currentQuestionIndex != currentQuestionIndex) {
                 _selectedAnswer = null;
@@ -136,7 +138,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
   }
 
   void _startCountdown() {
-    _countdown = 30;
+    _countdown = _questions[_currentQuestionIndex + 1]['duration'].toInt();
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown <= 0) {
@@ -153,25 +155,35 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
   }
 
   Future<void> _submitAnswer(String? answer) async {
-    if (_hasAnswered) return;
+  if (_hasAnswered) return;
 
-    _hasAnswered = true;
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+  _hasAnswered = true;
+  final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    final question = _questions[_currentQuestionIndex];
-    final correct = answer == question['correctAnswer'];
+  final question = _questions[_currentQuestionIndex];
+  final correct = question['options'].indexOf(answer) == question['correctAnswerIndex'];
 
-    if (correct) {
-      await FirebaseFirestore.instance
-          .collection('participants')
-          .doc(uid)
-          .update({'score': FieldValue.increment(1)});
-    }
+  final participantRef = FirebaseFirestore.instance.collection('participants').doc(uid);
 
-    setState(() {
-      _selectedAnswer = answer;
-    });
+  // Start a batch to ensure both updates happen together
+  final batch = FirebaseFirestore.instance.batch();
+
+  if (correct) {
+    int scoreIncrement = _countdown; // Use the remaining countdown time as a score multiplier
+    batch.update(participantRef, {'score': FieldValue.increment(scoreIncrement)});
   }
+
+  // Update answeredCurrentQuestion to true regardless of correctness
+  batch.update(participantRef, {'answeredCurrentQuestion': true});
+
+  // Commit the batch
+  await batch.commit();
+
+  setState(() {
+    _selectedAnswer = answer;
+  });
+}
+
 
   Future<void> _removeParticipant() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -223,6 +235,15 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
       return Scaffold(
         appBar: AppBar(title: const Text('Quiz Lobby')),
         body: const Center(child: Text('Waiting for quiz to start...')),
+      );
+    }
+
+    if (_quizEnded) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Quiz Lobby')),
+        body: const Center(
+                  child: Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
+                )
       );
     }
 
