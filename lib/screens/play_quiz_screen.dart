@@ -119,6 +119,10 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
                 _quizStarted = true;
               }
 
+              if(!started) {
+                _currentQuestionIndex = -1;
+              }
+
               _quizEnded = ended;
 
               if (_currentQuestionIndex != currentQuestionIndex) {
@@ -257,6 +261,8 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
 
     final question = _questions[_currentQuestionIndex];
     final options = List<String>.from(question['options'] ?? []);
+    final imageUrl = question['imageUrl'] as String?;
+
 
     return Scaffold(
       appBar: AppBar(title: Text('Question ${_currentQuestionIndex + 1}')),
@@ -270,6 +276,44 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 200,
+                          width: double.infinity,
+                          alignment: Alignment.center,
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          width: double.infinity,
+                          color: Colors.grey[300],
+                          alignment: Alignment.center,
+                          child: const Text('Failed to load image'),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             Text(
               'Time left: $_countdown seconds',
               style: const TextStyle(fontSize: 16, color: Colors.red),

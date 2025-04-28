@@ -15,14 +15,14 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   late String quizId;
   late String quizCode;
   late List questions;
-  int currentQuestionIndex = -1;
+  StreamSubscription<DocumentSnapshot>? _quizSubscription;
+  int _currentQuestionIndex = -1;
   bool started = false;
   bool ended = false;
-  Timestamp? questionStartTime;
   int questionDurationSeconds = 30;
 
+  int _countdown = 30;
   Timer? _timer;
-  int timeRemaining = 30;
 
   @override
   void initState() {
@@ -30,51 +30,86 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     quizId = widget.quizData['id'];
     quizCode = widget.quizData['quiz_code'];
     questions = widget.quizData['questions'] ?? [];
-    currentQuestionIndex = -1;
+    _currentQuestionIndex = -1;
     started = false;
     ended = false;
 
-    _resetQuizState(); // reset when screen is loaded
-    _listenForQuizChanges(); // listen for real-time updates
-    _startTimerLoop();
+    _resetQuizState().then((_) => _listenForQuizChanges());
+
   }
 
   Future<void> _resetQuizState() async {
-    await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update({
+    final batch = FirebaseFirestore.instance.batch();
+
+    // Reset the quiz document
+    final quizRef = FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId);
+    batch.update(quizRef, {
       'started': false,
       'ended': false,
       'currentQuestionIndex': -1,
     });
+
+    // Reset answeredCurrentQuestion for all participants
+    final participantsSnapshot =
+        await FirebaseFirestore.instance
+            .collection('participants')
+            .where('quiz_code', isEqualTo: quizCode)
+            .get();
+
+    for (var doc in participantsSnapshot.docs) {
+      batch.update(doc.reference, {'answeredCurrentQuestion': false});
+    }
+
+    // Commit all updates together
+    await batch.commit();
   }
 
   void _listenForQuizChanges() {
-    FirebaseFirestore.instance
+    _quizSubscription = FirebaseFirestore.instance
         .collection('quizzes')
         .doc(quizId)
         .snapshots()
         .listen((snapshot) {
           if (snapshot.exists) {
             final data = snapshot.data()!;
+            if (data == null) return;
+
+            final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
+
+            // if (started && !_quizStarted) {
+            //   _quizStarted = true;
+            // }
+
+            // _quizEnded = ended;
+
+            if (_currentQuestionIndex != currentQuestionIndex) {
+              // _currentQuestionIndex = currentQuestionIndex;
+              _startCountdown();
+            }
+
             setState(() {
               started = data['started'] ?? false;
               ended = data['ended'] ?? false;
-              currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
-              questionStartTime = data['questionStartTime'];
+              _currentQuestionIndex = currentQuestionIndex;
             });
           }
         });
   }
 
-  void _startTimerLoop() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (questionStartTime != null) {
-        final start = questionStartTime!.toDate();
-        final end = start.add(Duration(seconds: questionDurationSeconds));
-        final now = DateTime.now();
-        final remaining = end.difference(now).inSeconds;
-
+  void _startCountdown() {
+    _countdown = questions[_currentQuestionIndex + 1]['duration'].toInt();
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown <= 0) {
+        timer.cancel();
+        // if (!_hasAnswered) {
+        //   _submitAnswer(null); // Submit no answer
+        // }
+      } else {
         setState(() {
-          timeRemaining = remaining.clamp(0, questionDurationSeconds);
+          _countdown--;
         });
       }
     });
@@ -85,30 +120,26 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
 
     // Reset scores for all participants
     final participantsSnapshot =
-      await FirebaseFirestore.instance
-        .collection('participants')
-        .where('quiz_code', isEqualTo: quizCode)
-        .get();
+        await FirebaseFirestore.instance
+            .collection('participants')
+            .where('quiz_code', isEqualTo: quizCode)
+            .get();
 
     for (var doc in participantsSnapshot.docs) {
       batch.update(doc.reference, {'score': 0});
     }
 
-    batch.update(
-      FirebaseFirestore.instance.collection('quizzes').doc(quizId),
-      {
+    batch.update(FirebaseFirestore.instance.collection('quizzes').doc(quizId), {
       'started': true,
       'currentQuestionIndex': 0,
-      'questionStartTime': FieldValue.serverTimestamp(),
       'ended': false,
-      },
-    );
+    });
 
     await batch.commit();
   }
 
   Future<void> _nextQuestion() async {
-    if (currentQuestionIndex + 1 < questions.length) {
+    if (_currentQuestionIndex + 1 < questions.length) {
       final batch = FirebaseFirestore.instance.batch();
 
       // Reset answeredCurrentQuestion for all participants
@@ -124,10 +155,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
 
       batch.update(
         FirebaseFirestore.instance.collection('quizzes').doc(quizId),
-        {
-          'currentQuestionIndex': currentQuestionIndex + 1,
-          'questionStartTime': FieldValue.serverTimestamp(),
-        },
+        {'currentQuestionIndex': _currentQuestionIndex + 1},
       );
 
       await batch.commit();
@@ -137,9 +165,27 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   }
 
   Future<void> _endQuiz() async {
-    await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update({
-      'ended': true,
-    });
+    final batch = FirebaseFirestore.instance.batch();
+
+    // Reset answeredCurrentQuestion for all participants
+    final participantsSnapshot =
+        await FirebaseFirestore.instance
+            .collection('participants')
+            .where('quiz_code', isEqualTo: quizCode)
+            .get();
+
+    for (var doc in participantsSnapshot.docs) {
+      batch.update(doc.reference, {'answeredCurrentQuestion': false});
+    }
+
+    // Also update the quiz document in the SAME batch
+    final quizRef = FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId);
+    batch.update(quizRef, {'ended': true});
+
+    // Now commit everything together
+    await batch.commit();
   }
 
   Widget _buildWaitingRoom() {
@@ -178,12 +224,12 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   }
 
   Widget _buildQuestionUI() {
-    final question = questions[currentQuestionIndex];
+    final question = questions[_currentQuestionIndex];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Question ${currentQuestionIndex + 1} of ${questions.length}',
+          'Question ${_currentQuestionIndex + 1} of ${questions.length}',
           style: const TextStyle(fontSize: 18),
         ),
         const SizedBox(height: 10),
@@ -192,7 +238,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
           style: const TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 10),
-        Text('Time remaining: $timeRemaining seconds'),
+        Text('Time remaining: $_countdown seconds'),
         const SizedBox(height: 20),
         FutureBuilder<QuerySnapshot>(
           future:
@@ -204,12 +250,16 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
             if (!snapshot.hasData) return const CircularProgressIndicator();
             final participants = snapshot.data!.docs;
 
-
-            final allAnswered = participants.every(
-              (p) => ((p.data() as Map<String, dynamic>).containsKey('answeredCurrentQuestion') == true && (p['answeredCurrentQuestion'] ?? false) == true),
+            final allAnswered = participants.any(
+              (p) =>
+                  ((p.data() as Map<String, dynamic>).containsKey(
+                            'answeredCurrentQuestion',
+                          ) ==
+                          true &&
+                      (p['answeredCurrentQuestion'] ?? false) == true),
             );
 
-            final isTimeUp = timeRemaining == 0;
+            final isTimeUp = _countdown == 0;
 
             if (allAnswered || isTimeUp) {
               return Column(
@@ -247,6 +297,8 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _quizSubscription?.cancel();
+    _quizSubscription = null;
     FirebaseFirestore.instance.collection('quizzes').doc(quizId).update({
       'started': false,
     });
@@ -266,8 +318,8 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
                 ? const Center(
                   child: Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
                 )
-                : (currentQuestionIndex >= 0 &&
-                    currentQuestionIndex < questions.length)
+                : (_currentQuestionIndex >= 0 &&
+                    _currentQuestionIndex < questions.length)
                 ? _buildQuestionUI()
                 : const Center(child: Text("Invalid Question")),
       ),
