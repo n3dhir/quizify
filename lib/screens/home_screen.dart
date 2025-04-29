@@ -26,11 +26,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final userDoc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
 
     final hasSeenOnboarding = userDoc.data()?['has_seen_onboarding'] ?? false;
 
@@ -57,14 +56,13 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(title: Text('My Quizzes')),
       body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('quizzes')
-                .where(
-                  'creator_id',
-                  isEqualTo: FirebaseAuth.instance.currentUser?.uid,
-                )
-                .snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('quizzes')
+            .where(
+              'creator_id',
+              isEqualTo: FirebaseAuth.instance.currentUser?.uid,
+            )
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
@@ -129,12 +127,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            placeholder:
-                                (context, url) =>
-                                    Center(child: CircularProgressIndicator()),
-                            errorWidget:
-                                (context, url, error) =>
-                                    Icon(Icons.broken_image_outlined, size: 50),
+                            placeholder: (context, url) =>
+                                Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.broken_image_outlined, size: 50),
                           ),
                         ),
                         Padding(

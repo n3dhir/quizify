@@ -13,7 +13,7 @@ class JoinQuizScreen extends StatefulWidget {
 class _JoinQuizScreenState extends State<JoinQuizScreen> {
   final _quizCodeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +47,8 @@ class _JoinQuizScreenState extends State<JoinQuizScreen> {
               SnackBar(
                 content: Text(
                   'The quiz has already started. Please wait for the next round.',
-                  style: TextStyle(color: Theme.of(context).colorScheme.onError),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.onError),
                 ),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
@@ -90,14 +91,16 @@ class _JoinQuizScreenState extends State<JoinQuizScreen> {
 
   Future<bool> checkQuizExists(String quizCode) async {
     final quizRef = FirebaseFirestore.instance.collection('quizzes');
-    final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
+    final querySnapshot =
+        await quizRef.where('quiz_code', isEqualTo: quizCode).get();
 
     return querySnapshot.docs.isNotEmpty;
   }
-  
+
   Future<bool> checkQuizStarted(String quizCode) async {
     final quizRef = FirebaseFirestore.instance.collection('quizzes');
-    final querySnapshot = await quizRef.where('quiz_code', isEqualTo: quizCode).get();
+    final querySnapshot =
+        await quizRef.where('quiz_code', isEqualTo: quizCode).get();
 
     if (querySnapshot.docs.isNotEmpty) {
       final quizData = querySnapshot.docs.first.data();

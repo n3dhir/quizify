@@ -20,33 +20,33 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-            ListTile(
-              leading: Icon(
+          ListTile(
+            leading: Icon(
               themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
               color: Theme.of(context).colorScheme.primary,
-              ),
-              title: const Text('Dark Mode'),
-              trailing: CupertinoSwitch(
+            ),
+            title: const Text('Dark Mode'),
+            trailing: CupertinoSwitch(
               value: themeProvider.isDarkMode,
               onChanged: (value) {
                 themeProvider.toggleTheme();
               },
               activeTrackColor: Theme.of(context).colorScheme.primary,
-              ),
-              onTap: () {
-              themeProvider.toggleTheme();
-              },
-              splashColor: Colors.transparent,
-              hoverColor: Colors.transparent,
             ),
+            onTap: () {
+              themeProvider.toggleTheme();
+            },
+            splashColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+          ),
           // const Divider(),
           // ListTile(
           //   leading: Icon(
           //     Icons.person,
           //     color: Theme.of(context).colorScheme.primary,
           //   ),
-            // title: const Text('Account'),
-            // subtitle: Text("sdgsdgsd" ?? 'Not logged in'),
+          // title: const Text('Account'),
+          // subtitle: Text("sdgsdgsd" ?? 'Not logged in'),
           // ),
           const Divider(),
           ListTile(

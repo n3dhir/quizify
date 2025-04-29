@@ -23,12 +23,14 @@ final GoRouter router = GoRouter(
     }
 
     // If not logged in and trying to access protected routes, redirect to login
-    if (!isLoggedIn && (!goingTo.startsWith('/auth') && !goingTo.startsWith('/quiz'))) {
+    if (!isLoggedIn &&
+        (!goingTo.startsWith('/auth') && !goingTo.startsWith('/quiz'))) {
       return '/auth/login';
     }
 
     // If logged in and trying to go to login/signup, redirect to home
-    if (isLoggedIn && (goingTo.startsWith('/auth') || goingTo.startsWith('/quiz'))) {
+    if (isLoggedIn &&
+        (goingTo.startsWith('/auth') || goingTo.startsWith('/quiz'))) {
       return '/app/creator/home';
     }
 
@@ -40,7 +42,8 @@ final GoRouter router = GoRouter(
       path: '/auth',
       redirect: (BuildContext context, GoRouterState state) {
         final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
-        if (isLoggedIn) return '/app/creator/home'; // Redirect to home if logged in
+        if (isLoggedIn)
+          return '/app/creator/home'; // Redirect to home if logged in
 
         // Redirect /auth to /auth/login
         if (state.fullPath == '/auth') {
@@ -56,8 +59,8 @@ final GoRouter router = GoRouter(
         ),
         GoRoute(
           path: 'signup',
-          builder:
-              (BuildContext context, GoRouterState state) => SignUpScreen(),
+          builder: (BuildContext context, GoRouterState state) =>
+              SignUpScreen(),
         ),
       ],
     ),
@@ -65,7 +68,8 @@ final GoRouter router = GoRouter(
       path: '/quiz',
       redirect: (BuildContext context, GoRouterState state) {
         final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
-        if (isLoggedIn) return '/app/creator/home'; // Redirect to home if logged in
+        if (isLoggedIn)
+          return '/app/creator/home'; // Redirect to home if logged in
 
         // Redirect /auth to /auth/login
         if (state.fullPath == '/quiz') {
@@ -77,7 +81,8 @@ final GoRouter router = GoRouter(
       routes: [
         GoRoute(
           path: '/join',
-          builder: (BuildContext context, GoRouterState state) => JoinQuizScreen(),
+          builder: (BuildContext context, GoRouterState state) =>
+              JoinQuizScreen(),
         ),
         // GoRoute(
         //   path: '/play',
@@ -102,7 +107,6 @@ final GoRouter router = GoRouter(
 
         return null; // No redirect needed
       },
-
       routes: [
         GoRoute(
           path: 'creator',
@@ -155,10 +159,10 @@ final GoRouter router = GoRouter(
               ],
             ),
             GoRoute(
-                path: 'onboarding', // ✅ Removed leading slash
-                name: 'creator_onboarding',
-                builder: (context, state) => OnboardingScreen(),
-              ),
+              path: 'onboarding', // ✅ Removed leading slash
+              name: 'creator_onboarding',
+              builder: (context, state) => OnboardingScreen(),
+            ),
             // This one stays outside the ShellRoute
             GoRoute(
               path: 'add', // ✅ Relative to /creator, becomes /app/creator/add
@@ -166,13 +170,13 @@ final GoRouter router = GoRouter(
               builder: (context, state) => AddQuizScreen(),
             ),
             GoRoute(
-              path: 'details/:quiz_id', // ✅ Relative to /creator, becomes /app/creator/add
-              name: 'quiz_details',
-              builder: (context, state) {
-                final quizId = state.pathParameters['quiz_id']!;
-                return QuizDetailScreen(quiz_id: quizId);
-              }
-            ),
+                path:
+                    'details/:quiz_id', // ✅ Relative to /creator, becomes /app/creator/add
+                name: 'quiz_details',
+                builder: (context, state) {
+                  final quizId = state.pathParameters['quiz_id']!;
+                  return QuizDetailScreen(quiz_id: quizId);
+                }),
           ],
         ),
       ],
