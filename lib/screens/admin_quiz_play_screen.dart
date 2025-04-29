@@ -35,16 +35,14 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     ended = false;
 
     _resetQuizState().then((_) => _listenForQuizChanges());
-
   }
 
   Future<void> _resetQuizState() async {
     final batch = FirebaseFirestore.instance.batch();
 
     // Reset the quiz document
-    final quizRef = FirebaseFirestore.instance
-        .collection('quizzes')
-        .doc(quizId);
+    final quizRef =
+        FirebaseFirestore.instance.collection('quizzes').doc(quizId);
     batch.update(quizRef, {
       'started': false,
       'ended': false,
@@ -52,11 +50,10 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     });
 
     // Reset answeredCurrentQuestion for all participants
-    final participantsSnapshot =
-        await FirebaseFirestore.instance
-            .collection('participants')
-            .where('quiz_code', isEqualTo: quizCode)
-            .get();
+    final participantsSnapshot = await FirebaseFirestore.instance
+        .collection('participants')
+        .where('quiz_code', isEqualTo: quizCode)
+        .get();
 
     for (var doc in participantsSnapshot.docs) {
       batch.update(doc.reference, {'answeredCurrentQuestion': false});
@@ -72,30 +69,30 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
         .doc(quizId)
         .snapshots()
         .listen((snapshot) {
-          if (snapshot.exists) {
-            final data = snapshot.data()!;
-            if (data == null) return;
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        if (data == null) return;
 
-            final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
+        final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
 
-            // if (started && !_quizStarted) {
-            //   _quizStarted = true;
-            // }
+        // if (started && !_quizStarted) {
+        //   _quizStarted = true;
+        // }
 
-            // _quizEnded = ended;
+        // _quizEnded = ended;
 
-            if (_currentQuestionIndex != currentQuestionIndex) {
-              // _currentQuestionIndex = currentQuestionIndex;
-              _startCountdown();
-            }
+        if (_currentQuestionIndex != currentQuestionIndex) {
+          // _currentQuestionIndex = currentQuestionIndex;
+          _startCountdown();
+        }
 
-            setState(() {
-              started = data['started'] ?? false;
-              ended = data['ended'] ?? false;
-              _currentQuestionIndex = currentQuestionIndex;
-            });
-          }
+        setState(() {
+          started = data['started'] ?? false;
+          ended = data['ended'] ?? false;
+          _currentQuestionIndex = currentQuestionIndex;
         });
+      }
+    });
   }
 
   void _startCountdown() {
@@ -119,11 +116,10 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     final batch = FirebaseFirestore.instance.batch();
 
     // Reset scores for all participants
-    final participantsSnapshot =
-        await FirebaseFirestore.instance
-            .collection('participants')
-            .where('quiz_code', isEqualTo: quizCode)
-            .get();
+    final participantsSnapshot = await FirebaseFirestore.instance
+        .collection('participants')
+        .where('quiz_code', isEqualTo: quizCode)
+        .get();
 
     for (var doc in participantsSnapshot.docs) {
       batch.update(doc.reference, {'score': 0});
@@ -143,11 +139,10 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
       final batch = FirebaseFirestore.instance.batch();
 
       // Reset answeredCurrentQuestion for all participants
-      final participantsSnapshot =
-          await FirebaseFirestore.instance
-              .collection('participants')
-              .where('quiz_code', isEqualTo: quizCode)
-              .get();
+      final participantsSnapshot = await FirebaseFirestore.instance
+          .collection('participants')
+          .where('quiz_code', isEqualTo: quizCode)
+          .get();
 
       for (var doc in participantsSnapshot.docs) {
         batch.update(doc.reference, {'answeredCurrentQuestion': false});
@@ -168,20 +163,18 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     final batch = FirebaseFirestore.instance.batch();
 
     // Reset answeredCurrentQuestion for all participants
-    final participantsSnapshot =
-        await FirebaseFirestore.instance
-            .collection('participants')
-            .where('quiz_code', isEqualTo: quizCode)
-            .get();
+    final participantsSnapshot = await FirebaseFirestore.instance
+        .collection('participants')
+        .where('quiz_code', isEqualTo: quizCode)
+        .get();
 
     for (var doc in participantsSnapshot.docs) {
       batch.update(doc.reference, {'answeredCurrentQuestion': false});
     }
 
     // Also update the quiz document in the SAME batch
-    final quizRef = FirebaseFirestore.instance
-        .collection('quizzes')
-        .doc(quizId);
+    final quizRef =
+        FirebaseFirestore.instance.collection('quizzes').doc(quizId);
     batch.update(quizRef, {'ended': true});
 
     // Now commit everything together
@@ -190,11 +183,10 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
 
   Widget _buildWaitingRoom() {
     return StreamBuilder<QuerySnapshot>(
-      stream:
-          FirebaseFirestore.instance
-              .collection('participants')
-              .where('quiz_code', isEqualTo: quizCode)
-              .snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('participants')
+          .where('quiz_code', isEqualTo: quizCode)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
         final participants = snapshot.data!.docs;
@@ -241,22 +233,20 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
         Text('Time remaining: $_countdown seconds'),
         const SizedBox(height: 20),
         FutureBuilder<QuerySnapshot>(
-          future:
-              FirebaseFirestore.instance
-                  .collection('participants')
-                  .where('quiz_code', isEqualTo: quizCode)
-                  .get(),
+          future: FirebaseFirestore.instance
+              .collection('participants')
+              .where('quiz_code', isEqualTo: quizCode)
+              .get(),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const CircularProgressIndicator();
             final participants = snapshot.data!.docs;
 
             final allAnswered = participants.any(
-              (p) =>
-                  ((p.data() as Map<String, dynamic>).containsKey(
-                            'answeredCurrentQuestion',
-                          ) ==
-                          true &&
-                      (p['answeredCurrentQuestion'] ?? false) == true),
+              (p) => ((p.data() as Map<String, dynamic>).containsKey(
+                        'answeredCurrentQuestion',
+                      ) ==
+                      true &&
+                  (p['answeredCurrentQuestion'] ?? false) == true),
             );
 
             final isTimeUp = _countdown == 0;
@@ -311,17 +301,17 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
       appBar: AppBar(title: const Text("Quiz Admin Panel")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child:
-            !started
-                ? _buildWaitingRoom()
-                : ended
+        child: !started
+            ? _buildWaitingRoom()
+            : ended
                 ? const Center(
-                  child: Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
-                )
+                    child:
+                        Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
+                  )
                 : (_currentQuestionIndex >= 0 &&
-                    _currentQuestionIndex < questions.length)
-                ? _buildQuestionUI()
-                : const Center(child: Text("Invalid Question")),
+                        _currentQuestionIndex < questions.length)
+                    ? _buildQuestionUI()
+                    : const Center(child: Text("Invalid Question")),
       ),
     );
   }

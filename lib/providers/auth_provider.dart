@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 
 class AuthProvider with ChangeNotifier {
   static final AuthProvider _instance = AuthProvider._internal();
-  
+
   factory AuthProvider() {
     return _instance;
   }
-  
+
   AuthProvider._internal() {
     // Set up Firebase Auth state listener immediately
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
@@ -17,23 +17,21 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     });
   }
-  
+
   bool _isLoggedIn = false;
   bool _isLoading = true;
-  
+
   bool get isLoggedIn => _isLoggedIn;
   bool get isLoading => _isLoading;
-  
+
   // The rest of your methods remain similar, but without the SharedPreferences logic
   Future<void> login(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
-      
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email, 
-        password: password
-      );
+
+      await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
       // No need to set SharedPreferences - the auth listener will handle state
     } catch (e) {
       print('Login failed: $e');
@@ -43,18 +41,19 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   // Similarly for signup method
   Future<void> signup(String email, String password) async {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
-          
+
       if (userCredential.user != null) {
-        CollectionReference users = FirebaseFirestore.instance.collection('users');
+        CollectionReference users =
+            FirebaseFirestore.instance.collection('users');
         await users.doc(userCredential.user?.uid).set({
           'email': userCredential.user?.email,
           'createdAt': FieldValue.serverTimestamp(),
@@ -69,7 +68,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> logout() async {
     try {
       await FirebaseAuth.instance.signOut();

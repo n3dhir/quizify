@@ -11,7 +11,7 @@ void main() async {
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
-  );  // Initialize Firebase
+  ); // Initialize Firebase
 
   final themeProvider = ThemeProvider();
   await themeProvider.init();
@@ -25,31 +25,31 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key, required this.themeProvider});
 
   @override
-Widget build(BuildContext context) {
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
-    ],
-    child: Builder(
-      builder: (context) {
-        final auth = context.watch<AuthProvider>();
-        final themeData = context.watch<ThemeProvider>().themeData;
-        
-        // Always use MaterialApp.router to maintain router state
-        return MaterialApp.router(
-          routerConfig: router,
-          theme: themeData,
-          debugShowCheckedModeBanner: false,
-          // Show loading overlay if needed
-          builder: auth.isLoading 
-            ? (context, child) => Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              )
-            : null,
-        );
-      },
-    ),
-  );
-}
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
+      ],
+      child: Builder(
+        builder: (context) {
+          final auth = context.watch<AuthProvider>();
+          final themeData = context.watch<ThemeProvider>().themeData;
+
+          // Always use MaterialApp.router to maintain router state
+          return MaterialApp.router(
+            routerConfig: router,
+            theme: themeData,
+            debugShowCheckedModeBanner: false,
+            // Show loading overlay if needed
+            builder: auth.isLoading
+                ? (context, child) => Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    )
+                : null,
+          );
+        },
+      ),
+    );
+  }
 }

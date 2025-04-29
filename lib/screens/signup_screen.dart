@@ -147,10 +147,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     labelStyle: WidgetStateTextStyle.resolveWith((
                       Set<WidgetState> states,
                     ) {
-                      final Color color =
-                          states.contains(WidgetState.error)
-                              ? Colors.red.shade300
-                              : Colors.grey.shade500;
+                      final Color color = states.contains(WidgetState.error)
+                          ? Colors.red.shade300
+                          : Colors.grey.shade500;
                       return TextStyle(color: color, letterSpacing: 1.3);
                     }),
                     border: OutlineInputBorder(),
@@ -182,10 +181,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     labelStyle: WidgetStateTextStyle.resolveWith((
                       Set<WidgetState> states,
                     ) {
-                      final Color color =
-                          states.contains(WidgetState.error)
-                              ? Colors.red.shade300
-                              : Colors.grey.shade500;
+                      final Color color = states.contains(WidgetState.error)
+                          ? Colors.red.shade300
+                          : Colors.grey.shade500;
                       return TextStyle(color: color, letterSpacing: 1.3);
                     }),
                     border: OutlineInputBorder(),
@@ -206,9 +204,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty ? 'Please enter your password' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter your password' : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -219,10 +216,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     labelStyle: WidgetStateTextStyle.resolveWith((
                       Set<WidgetState> states,
                     ) {
-                      final Color color =
-                          states.contains(WidgetState.error)
-                              ? Colors.red.shade300
-                              : Colors.grey.shade500;
+                      final Color color = states.contains(WidgetState.error)
+                          ? Colors.red.shade300
+                          : Colors.grey.shade500;
                       return TextStyle(color: color, letterSpacing: 1.3);
                     }),
                     border: OutlineInputBorder(),

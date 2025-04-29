@@ -107,11 +107,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AdminQuizPlayScreen(quizData: {
-                          'id': widget.quiz_id,
-                          ...quizData
-                          }),
+                    builder: (context) => AdminQuizPlayScreen(
+                        quizData: {'id': widget.quiz_id, ...quizData}),
                   ),
                 );
               },
@@ -140,8 +137,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           children: [
             Text(
               'Quiz Title: ${quizData['title']}',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(

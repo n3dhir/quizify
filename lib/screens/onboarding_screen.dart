@@ -10,12 +10,11 @@ class OnboardingScreen extends StatelessWidget {
   Future<void> _completeOnboarding(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
     await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user!.uid)
-      .set({'has_seen_onboarding': true}, SetOptions(merge: true));
-    
-    context.go('/app/creator/home');
+        .collection('users')
+        .doc(user!.uid)
+        .set({'has_seen_onboarding': true}, SetOptions(merge: true));
 
+    context.go('/app/creator/home');
   }
 
   @override

@@ -12,7 +12,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:quizify/services/quizz_service.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-
 class AddQuizScreen extends StatefulWidget {
   const AddQuizScreen({super.key});
 
@@ -245,10 +244,9 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed:
-                                      _questions.length > 1
-                                          ? () => _removeQuestion(index)
-                                          : null,
+                                  onPressed: _questions.length > 1
+                                      ? () => _removeQuestion(index)
+                                      : null,
                                   icon: Icon(
                                     Icons.delete_outline_rounded,
                                     color: Colors.deepPurple,
@@ -265,9 +263,8 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                               duration: Duration(
                                 milliseconds: 500,
                               ), // <-- adjust for smoother/slower
-                              curve:
-                                  Curves
-                                      .easeInOut, // <-- makes it look smoother
+                              curve: Curves
+                                  .easeInOut, // <-- makes it look smoother
                               builder: (context, value, child) {
                                 return LinearProgressIndicator(
                                   value: value,
@@ -284,159 +281,169 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                         SizedBox(height: 16),
                         q['image'] == null
                             ? InkWell(
-                              onTap: () => _pickImage(index),
-                              child: DottedBorder(
-                                borderType: BorderType.RRect,
-                                radius: Radius.circular(12),
-                                dashPattern: [8, 4],
-                                color: Colors.deepPurple,
-                                strokeWidth: 2,
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(vertical: 24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.image,
-                                        size: 32,
-                                        color: Colors.deepPurple,
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        "Upload Image",
-                                        style: TextStyle(
+                                onTap: () => _pickImage(index),
+                                child: DottedBorder(
+                                  borderType: BorderType.RRect,
+                                  radius: Radius.circular(12),
+                                  dashPattern: [8, 4],
+                                  color: Colors.deepPurple,
+                                  strokeWidth: 2,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.deepPurple.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.image,
+                                          size: 32,
                                           color: Colors.deepPurple,
                                         ),
-                                      ),
-                                    ],
+                                        SizedBox(height: 8),
+                                        Text(
+                                          "Upload Image",
+                                          style: TextStyle(
+                                            color: Colors.deepPurple,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
+                              )
                             : Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child:
-                                      kIsWeb
-                                          ? Image.memory(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: kIsWeb
+                                        ? Image.memory(
                                             q['image'],
                                             height: 200,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
                                           )
-                                          : Image.file(
+                                        : Image.file(
                                             q['image'],
                                             height: 200,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
                                           ),
-                                ),
-                                // Edit Button
-                                // EDIT BUTTON
-                                Positioned(
-                                  top: 8,
-                                  right: 48,
-                                  child: MouseRegion(
-                                    cursor: SystemMouseCursors.click,
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Colors.deepPurple.shade50
-                                            .withOpacity(0.9),
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.deepPurple
-                                                .withOpacity(0.2),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
+                                  ),
+                                  // Edit Button
+                                  // EDIT BUTTON
+                                  Positioned(
+                                    top: 8,
+                                    right: 48,
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepPurple.shade50
+                                              .withOpacity(0.9),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.deepPurple
+                                                  .withOpacity(0.2),
+                                              blurRadius: 4,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Tooltip(
+                                          message: "Change Image",
+                                          child: IconButton(
+                                            icon: Icon(
+                                              Icons.edit_outlined,
+                                              color: Colors.deepPurple,
+                                              size: 18,
+                                            ),
+                                            onPressed: () => _pickImage(index),
+                                            splashRadius: 18,
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(),
                                           ),
-                                        ],
-                                      ),
-                                      child: Tooltip(
-                                        message: "Change Image",
-                                        child: IconButton(
-                                          icon: Icon(
-                                            Icons.edit_outlined,
-                                            color: Colors.deepPurple,
-                                            size: 18,
-                                          ),
-                                          onPressed: () => _pickImage(index),
-                                          splashRadius: 18,
-                                          padding: EdgeInsets.zero,
-                                          constraints: BoxConstraints(),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
 
-                                // DELETE BUTTON
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: MouseRegion(
-                                    cursor: SystemMouseCursors.click,
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Colors.deepPurple.shade50
-                                            .withOpacity(0.9),
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.deepPurple
-                                                .withOpacity(0.2),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
+                                  // DELETE BUTTON
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepPurple.shade50
+                                              .withOpacity(0.9),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.deepPurple
+                                                  .withOpacity(0.2),
+                                              blurRadius: 4,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Tooltip(
+                                          message: "Delete Image",
+                                          child: IconButton(
+                                            icon: Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.deepPurple,
+                                              size: 18,
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                q['image'] = null;
+                                              });
+                                            },
+                                            splashRadius: 18,
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(),
                                           ),
-                                        ],
-                                      ),
-                                      child: Tooltip(
-                                        message: "Delete Image",
-                                        child: IconButton(
-                                          icon: Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.deepPurple,
-                                            size: 18,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              q['image'] = null;
-                                            });
-                                          },
-                                          splashRadius: 18,
-                                          padding: EdgeInsets.zero,
-                                          constraints: BoxConstraints(),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                         SizedBox(height: 16),
                         SliderTheme(
                           data: SliderThemeData(
-                            activeTrackColor:
-                                Theme.of(context).colorScheme.primary, // Color of the active track
-                            inactiveTrackColor:
-                                Theme.of(context).colorScheme.inversePrimary.withOpacity(0.2), // Color of the inactive track
-                            thumbColor:
-                                Theme.of(context).colorScheme.primary, // Color of the thumb (the draggable part)
-                            overlayColor: Theme.of(context).colorScheme.primary.withOpacity(
-                              0.2,
-                            ), // Color when the slider thumb is touched
-                            valueIndicatorColor:
-                                Theme.of(context).colorScheme.primary, // Color of the value indicator
+                            activeTrackColor: Theme.of(context)
+                                .colorScheme
+                                .primary, // Color of the active track
+                            inactiveTrackColor: Theme.of(context)
+                                .colorScheme
+                                .inversePrimary
+                                .withOpacity(
+                                    0.2), // Color of the inactive track
+                            thumbColor: Theme.of(context)
+                                .colorScheme
+                                .primary, // Color of the thumb (the draggable part)
+                            overlayColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(
+                                  0.2,
+                                ), // Color when the slider thumb is touched
+                            valueIndicatorColor: Theme.of(context)
+                                .colorScheme
+                                .primary, // Color of the value indicator
                             tickMarkShape: SliderTickMarkShape.noTickMark,
                           ),
                           child: Slider(
@@ -507,15 +514,14 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
                                 Icons.delete_outline_rounded,
                                 color: Colors.deepPurple,
                               ),
-                              onPressed:
-                                  q['options'].length > 2
-                                      ? () {
-                                        setState(() {
-                                          // Remove the option at the selected index
-                                          q['options'].removeAt(i);
-                                        });
-                                      }
-                                      : null,
+                              onPressed: q['options'].length > 2
+                                  ? () {
+                                      setState(() {
+                                        // Remove the option at the selected index
+                                        q['options'].removeAt(i);
+                                      });
+                                    }
+                                  : null,
                             ),
                           ),
                         ElevatedButton.icon(
@@ -566,7 +572,6 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
               },
             ),
           ),
-
           SizedBox(height: 16),
         ],
       ),
@@ -588,16 +593,14 @@ class _AddQuizScreenState extends State<AddQuizScreen> {
             ),
             SizedBox(width: 12),
             FloatingActionButton(
-              onPressed:
-                  _questions.isNotEmpty &&
-                          _questions.every((q) => _isQuestionValid(q))
-                      ? _createQuiz
-                      : null,
-              backgroundColor:
-                  _questions.isNotEmpty &&
-                          _questions.every((q) => _isQuestionValid(q))
-                      ? Colors.deepPurple
-                      : Colors.grey,
+              onPressed: _questions.isNotEmpty &&
+                      _questions.every((q) => _isQuestionValid(q))
+                  ? _createQuiz
+                  : null,
+              backgroundColor: _questions.isNotEmpty &&
+                      _questions.every((q) => _isQuestionValid(q))
+                  ? Colors.deepPurple
+                  : Colors.grey,
               child: Icon(Icons.check),
             ),
           ],

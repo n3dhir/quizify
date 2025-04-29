@@ -12,7 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  late final authProvider = Provider.of<QuizifyAuthProvider.AuthProvider>(context, listen: false);
+  late final authProvider =
+      Provider.of<QuizifyAuthProvider.AuthProvider>(context, listen: false);
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
@@ -25,22 +26,23 @@ class _LoginScreenState extends State<LoginScreen> {
         // handle login logic
         debugPrint('Email: ${_emailController.text}');
         debugPrint('Password: ${_passwordController.text}');
-        await authProvider.login(_emailController.text, _passwordController.text); // Log the user in
+        await authProvider.login(
+            _emailController.text, _passwordController.text); // Log the user in
       } on FirebaseAuthException catch (e) {
         var errorMessage = "Login failed. Please try again later.";
         if (e.code == 'invalid-credential') {
           errorMessage = "Login failed. Please check your credentials.";
         } else if (e.code == 'network-request-failed') {
           errorMessage =
-          "No internet connection. Please check your network settings.";
+              "No internet connection. Please check your network settings.";
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-        content: Text(
-          errorMessage,
-          style: TextStyle(color: Theme.of(context).colorScheme.onError),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.error,
+            content: Text(
+              errorMessage,
+              style: TextStyle(color: Theme.of(context).colorScheme.onError),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         debugPrint('Login error: $e');
@@ -60,22 +62,21 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-String? _validateEmail(String? value) {
-  if (value == null || value.isEmpty) {
-    return 'Please enter your email';
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your email';
+    }
+
+    final emailRegex = RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    );
+
+    if (!emailRegex.hasMatch(value)) {
+      return 'Please enter a valid email address';
+    }
+
+    return null;
   }
-
-  final emailRegex = RegExp(
-    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-  );
-
-  if (!emailRegex.hasMatch(value)) {
-    return 'Please enter a valid email address';
-  }
-
-  return null;
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -98,19 +99,20 @@ String? _validateEmail(String? value) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Align(
-      alignment: Alignment.centerRight,
-      child: TextButton.icon(
-        onPressed: () {
-          router.go('/quiz/join'); // 👈 navigate to your join quiz route
-        },
-        icon: const Icon(Icons.arrow_forward),
-        label: const Text("Join a Quiz"),
-        style: TextButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.primary,
-          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-    ),
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      router.go(
+                          '/quiz/join'); // 👈 navigate to your join quiz route
+                    },
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text("Join a Quiz"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
                 Text(
                   'Sign In',
                   style: TextStyle(
@@ -136,10 +138,9 @@ String? _validateEmail(String? value) {
                     labelStyle: WidgetStateTextStyle.resolveWith((
                       Set<WidgetState> states,
                     ) {
-                      final Color color =
-                          states.contains(WidgetState.error)
-                              ? Colors.red.shade300
-                              : Colors.grey.shade500;
+                      final Color color = states.contains(WidgetState.error)
+                          ? Colors.red.shade300
+                          : Colors.grey.shade500;
                       return TextStyle(color: color, letterSpacing: 1.3);
                     }),
                     border: OutlineInputBorder(),
@@ -162,7 +163,6 @@ String? _validateEmail(String? value) {
                   ),
                   validator: _validateEmail,
                 ),
-
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
@@ -172,10 +172,9 @@ String? _validateEmail(String? value) {
                     labelStyle: WidgetStateTextStyle.resolveWith((
                       Set<WidgetState> states,
                     ) {
-                      final Color color =
-                          states.contains(WidgetState.error)
-                              ? Colors.red.shade300
-                              : Colors.grey.shade500;
+                      final Color color = states.contains(WidgetState.error)
+                          ? Colors.red.shade300
+                          : Colors.grey.shade500;
                       return TextStyle(color: color, letterSpacing: 1.3);
                     }),
                     border: OutlineInputBorder(),
@@ -196,11 +195,9 @@ String? _validateEmail(String? value) {
                       ),
                     ),
                   ),
-                  validator:
-                      (value) =>
-                          value!.isEmpty ? 'Please enter your password' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Please enter your password' : null,
                 ),
-
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -228,29 +225,28 @@ String? _validateEmail(String? value) {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-    Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        const Text("Don't have an account? "),
-        MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () {
-              // Navigate to sign-up page
-              router.go('/auth/signup');
-            },
-            child: Text(
-              'Sign up',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const Text("Don't have an account? "),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          // Navigate to sign-up page
+                          router.go('/auth/signup');
+                        },
+                        child: Text(
+                          'Sign up',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
