@@ -5,10 +5,14 @@ import 'package:quizify/providers/theme_provider.dart';
 import 'router.dart';
 import 'providers/auth_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+// Load .env file before anything else
+  await dotenv.load(fileName: ".env");
+  // await dotenv.load();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   ); // Initialize Firebase

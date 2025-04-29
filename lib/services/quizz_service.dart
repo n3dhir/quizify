@@ -3,12 +3,12 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart'; // Needed for mime types
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<String?> uploadImageToBytescale(
     dynamic image, String quizId, int index) async {
-  const String uploadUrl =
-      'https://api.bytescale.com/v2/accounts/W23MT8F/uploads/form_data';
-  const String apiKey = 'public_W23MT8F2gY8QsgsNjKi973zwtSZA';
+  final String uploadUrl = dotenv.env['BYTESCALE_API_URL']!;
+  final String apiKey = dotenv.env['BYTESCALE_API_KEY']!;
 
   try {
     var request = http.MultipartRequest('POST', Uri.parse(uploadUrl));

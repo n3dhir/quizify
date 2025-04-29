@@ -3,17 +3,8 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-/// Default [FirebaseOptions] for use with your Firebase apps.
-///
-/// Example:
-/// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
-/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -40,49 +31,42 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDIKY3nl9kop7MCDOZPDhAVoqWBQgCVebQ',
-    appId: '1:837911345472:web:841ff729a8d67c28c0e2a5',
-    messagingSenderId: '837911345472',
-    projectId: 'quizify-27c62',
-    authDomain: 'quizify-27c62.firebaseapp.com',
-    storageBucket: 'quizify-27c62.firebasestorage.app',
-    measurementId: 'G-CM17LZ6R5S',
+  static final FirebaseOptions web = FirebaseOptions(
+    apiKey: dotenv.env['WEB_API_KEY']!,
+    appId: dotenv.env['WEB_APP_ID']!,
+    messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['WEB_PROJECT_ID']!,
+    authDomain: dotenv.env['WEB_AUTH_DOMAIN'],
+    storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
+    measurementId: dotenv.env['WEB_MEASUREMENT_ID'],
   );
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA_g4bw94kgrMQXhJRoCwCaHSmu4jLg4DQ',
-    appId: '1:837911345472:android:5047178d574552c2c0e2a5',
-    messagingSenderId: '837911345472',
-    projectId: 'quizify-27c62',
-    storageBucket: 'quizify-27c62.firebasestorage.app',
+  static final FirebaseOptions android = FirebaseOptions(
+    apiKey: dotenv.env['ANDROID_API_KEY']!,
+    appId: dotenv.env['ANDROID_APP_ID']!,
+    messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['WEB_PROJECT_ID']!,
+    storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyD6Qi7awfNQ3GElGDDNvJJlrEqCI58A1o4',
-    appId: '1:837911345472:ios:2d14660bfc5ece5cc0e2a5',
-    messagingSenderId: '837911345472',
-    projectId: 'quizify-27c62',
-    storageBucket: 'quizify-27c62.firebasestorage.app',
-    iosBundleId: 'com.example.quizify',
+  static final FirebaseOptions ios = FirebaseOptions(
+    apiKey: dotenv.env['IOS_API_KEY']!,
+    appId: dotenv.env['IOS_APP_ID']!,
+    messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['WEB_PROJECT_ID']!,
+    storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
+    iosBundleId: dotenv.env['IOS_BUNDLE_ID'],
   );
 
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD6Qi7awfNQ3GElGDDNvJJlrEqCI58A1o4',
-    appId: '1:837911345472:ios:2d14660bfc5ece5cc0e2a5',
-    messagingSenderId: '837911345472',
-    projectId: 'quizify-27c62',
-    storageBucket: 'quizify-27c62.firebasestorage.app',
-    iosBundleId: 'com.example.quizify',
-  );
+  static final FirebaseOptions macos = ios;
 
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDIKY3nl9kop7MCDOZPDhAVoqWBQgCVebQ',
-    appId: '1:837911345472:web:e1928b4bbfb1a7c7c0e2a5',
-    messagingSenderId: '837911345472',
-    projectId: 'quizify-27c62',
-    authDomain: 'quizify-27c62.firebaseapp.com',
-    storageBucket: 'quizify-27c62.firebasestorage.app',
-    measurementId: 'G-2MF6EMZXGH',
+  static final FirebaseOptions windows = FirebaseOptions(
+    apiKey: dotenv.env['WINDOWS_API_KEY']!,
+    appId: dotenv.env['WINDOWS_APP_ID']!,
+    messagingSenderId: dotenv.env['WEB_MESSAGING_SENDER_ID']!,
+    projectId: dotenv.env['WEB_PROJECT_ID']!,
+    authDomain: dotenv.env['WEB_AUTH_DOMAIN'],
+    storageBucket: dotenv.env['WEB_STORAGE_BUCKET'],
+    measurementId: dotenv.env['WINDOWS_MEASUREMENT_ID'],
   );
 }
