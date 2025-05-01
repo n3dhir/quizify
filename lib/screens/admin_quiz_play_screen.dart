@@ -88,6 +88,84 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
     _resetQuizState().then((_) => _listenForQuizChanges());
   }
 
+  List<DocumentSnapshot> _sortedParticipants(
+    List<DocumentSnapshot> participants,
+  ) {
+    participants.sort((a, b) => (b['score'] ?? 0).compareTo(a['score'] ?? 0));
+    return participants;
+  }
+
+  Widget _buildWinnerPodium(List<DocumentSnapshot> participants) {
+    final winners = participants.take(3).toList();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (winners.length >= 2)
+            _PodiumStep(
+              participant: winners[1],
+              position: 2,
+              height: 100,
+              color: Colors.blueGrey[300]!,
+            ),
+          if (winners.isNotEmpty)
+            _PodiumStep(
+              participant: winners[0],
+              position: 1,
+              height: 150,
+              color: Colors.amber[300]!,
+            ),
+          if (winners.length >= 3)
+            _PodiumStep(
+              participant: winners[2],
+              position: 3,
+              height: 80,
+              color: Colors.brown[300]!,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWinnerBadge(int position) {
+    final colors = {1: Colors.amber, 2: Colors.blueGrey, 3: Colors.brown};
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colors[position]?[300],
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+      ),
+      child: Center(
+        child: Text(
+          '$position${_getPositionSuffix(position)}',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getPositionSuffix(int position) {
+    switch (position) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  }
+
   @override
   void dispose() {
     _quizSubscription?.cancel();
@@ -264,6 +342,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
   Widget _buildParticipantCard(
     DocumentSnapshot participant, {
     bool grid = false,
+    int? position,
   }) {
     final nickname = participant['nickname'] ?? 'Anonymous';
     final score = (participant['score'] ?? 0).toInt();
@@ -272,123 +351,119 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
         (participantData['answeredCurrentQuestion'] ?? false) as bool;
     final progress = maxPossibleScore > 0 ? score / maxPossibleScore : 0;
 
-    if (grid) {
-      return Card(
-        elevation: 3,
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side:
-              answeredCurrent
-                  ? BorderSide(color: Colors.green.shade300, width: 2)
-                  : BorderSide.none,
+    final isWinner = position != null && position <= 3;
+    final medalColors = {1: Colors.amber, 2: Colors.blueGrey, 3: Colors.brown};
+
+    final card = Card(
+      elevation: isWinner ? 6 : 3,
+      margin: const EdgeInsets.all(8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: answeredCurrent ? Colors.green.shade300 : Colors.transparent,
+          width: 2,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildParticipantAvatar(nickname, answeredCurrent),
-              const SizedBox(height: 12),
-              Text(
-                nickname,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                _buildParticipantAvatar(nickname, answeredCurrent),
+                if (position != null)
+                  Positioned(top: -10, child: _buildWinnerBadge(position)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              nickname,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isWinner ? medalColors[position] : Colors.black,
               ),
-              const SizedBox(height: 8),
-              Text(
-                '$score pts',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$score pts',
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 12),
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  answeredCurrent
-                      ? Colors.green
-                      : Theme.of(context).primaryColor,
-                ),
-                minHeight: 6,
-                borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                answeredCurrent ? Colors.green : Theme.of(context).primaryColor,
               ),
-            ],
+              minHeight: 6,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return ended && position != null
+        ? AnimationConfiguration.staggeredGrid(
+          position: position,
+          duration: const Duration(milliseconds: 500),
+          columnCount: 1,
+          child: ScaleAnimation(
+            curve: Curves.elasticOut,
+            child: FadeInAnimation(child: card),
+          ),
+        )
+        : card;
+  }
+
+  Widget _buildEndScreen(List<DocumentSnapshot> participants) {
+    final sorted = _sortedParticipants(participants);
+
+    return Column(
+      children: [
+        Text(
+          'Quiz Results',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).primaryColor,
           ),
         ),
-      );
-    } else {
-      return Card(
-        elevation: 3,
-        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side:
-              answeredCurrent
-                  ? BorderSide(color: Colors.green.shade300, width: 2)
-                  : BorderSide.none,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              _buildParticipantAvatar(nickname, answeredCurrent),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            nickname,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          '$score pts',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Theme.of(context).primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.grey[200],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        answeredCurrent
-                            ? Colors.green
-                            : Theme.of(context).primaryColor,
+        _buildWinnerPodium(sorted),
+        Expanded(
+          child: AnimationLimiter(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: sorted.length,
+              itemBuilder: (context, index) {
+                return AnimationConfiguration.staggeredList(
+                  position: index,
+                  duration: const Duration(milliseconds: 375),
+                  child: SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: _buildParticipantCard(
+                        sorted[index],
+                        position: index + 1,
                       ),
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
-      );
-    }
+      ],
+    );
   }
 
   @override
@@ -396,9 +471,22 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
     return Scaffold(
       body: Stack(
         children: [
-          if (!started || ended) _buildWaitingRoom(),
+          if (!started || ended)
+            StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('participants')
+                      .where('quiz_code', isEqualTo: quizCode)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final participants = snapshot.data!.docs;
+                return ended
+                    ? _buildEndScreen(participants)
+                    : _buildWaitingRoom();
+              },
+            ),
           if (started && !ended) _buildQuestionUI(),
-
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
@@ -1096,5 +1184,96 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
         ),
       ],
     );
+  }
+}
+
+class _PodiumStep extends StatelessWidget {
+  final DocumentSnapshot participant;
+  final int position;
+  final double height;
+  final Color color;
+
+  const _PodiumStep({
+    required this.participant,
+    required this.position,
+    required this.height,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nickname = participant['nickname'] ?? 'Anonymous';
+    final score = (participant['score'] ?? 0).toInt();
+
+    return AnimationConfiguration.staggeredList(
+      position: position,
+      duration: const Duration(milliseconds: 500),
+      child: SlideAnimation(
+        verticalOffset: 50,
+        child: FadeInAnimation(
+          child: Container(
+            width: 120,
+            height: height,
+            margin: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '$position${_getPositionSuffix(position)}',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  nickname,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '$score pts',
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getPositionSuffix(int position) {
+    switch (position) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
   }
 }
