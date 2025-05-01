@@ -503,6 +503,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
                               FirebaseFirestore.instance
                                   .collection('participants')
                                   .where('quiz_code', isEqualTo: quizCode)
+                                  .orderBy('score', descending: true)
                                   .snapshots(),
                           builder: (context, snapshot) {
                             int participantCount =
@@ -572,7 +573,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
                                   key: const ValueKey('startButton'),
                                   onPressed: _startQuizWithCountdown,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: Colors.purple[50],
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20,
                                       vertical: 12,
