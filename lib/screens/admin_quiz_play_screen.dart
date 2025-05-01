@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -19,10 +20,9 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   int _currentQuestionIndex = -1;
   bool started = false;
   bool ended = false;
-  int questionDurationSeconds = 30;
-
   int _countdown = 30;
   Timer? _timer;
+  int maxPossibleScore = 0;
 
   @override
   void initState() {
@@ -34,32 +34,36 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     started = false;
     ended = false;
 
+    // Calculate max possible score
+    maxPossibleScore = questions.fold(
+      0,
+      (sum, question) => sum + (question['duration'] as int),
+    );
+
     _resetQuizState().then((_) => _listenForQuizChanges());
   }
 
   Future<void> _resetQuizState() async {
     final batch = FirebaseFirestore.instance.batch();
-
-    // Reset the quiz document
-    final quizRef =
-        FirebaseFirestore.instance.collection('quizzes').doc(quizId);
+    final quizRef = FirebaseFirestore.instance.collection('quizzes').doc(quizId);
     batch.update(quizRef, {
       'started': false,
       'ended': false,
       'currentQuestionIndex': -1,
     });
 
-    // Reset answeredCurrentQuestion for all participants
     final participantsSnapshot = await FirebaseFirestore.instance
         .collection('participants')
         .where('quiz_code', isEqualTo: quizCode)
         .get();
 
     for (var doc in participantsSnapshot.docs) {
-      batch.update(doc.reference, {'answeredCurrentQuestion': false});
+      batch.update(doc.reference, {
+        'answeredCurrentQuestion': false,
+        'score': 0,
+      });
     }
 
-    // Commit all updates together
     await batch.commit();
   }
 
@@ -71,74 +75,45 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
         .listen((snapshot) {
       if (snapshot.exists) {
         final data = snapshot.data()!;
-        if (data == null) return;
-
-        final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
-
-        // if (started && !_quizStarted) {
-        //   _quizStarted = true;
-        // }
-
-        // _quizEnded = ended;
-
-        if (_currentQuestionIndex != currentQuestionIndex) {
-          // _currentQuestionIndex = currentQuestionIndex;
-          _startCountdown();
-        }
-
         setState(() {
           started = data['started'] ?? false;
           ended = data['ended'] ?? false;
-          _currentQuestionIndex = currentQuestionIndex;
+          if (_currentQuestionIndex != data['currentQuestionIndex']) {
+            _currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
+            if (_currentQuestionIndex >= 0) {
+              _startCountdown();
+            }
+          }
         });
       }
     });
   }
 
   void _startCountdown() {
-    _countdown = questions[_currentQuestionIndex + 1]['duration'].toInt();
+    _countdown = questions[_currentQuestionIndex]['duration'].toInt();
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdown <= 0) {
-        timer.cancel();
-        // if (!_hasAnswered) {
-        //   _submitAnswer(null); // Submit no answer
-        // }
-      } else {
-        setState(() {
+      setState(() {
+        if (_countdown <= 0) {
+          timer.cancel();
+        } else {
           _countdown--;
-        });
-      }
+        }
+      });
     });
   }
 
   Future<void> _startQuiz() async {
-    final batch = FirebaseFirestore.instance.batch();
-
-    // Reset scores for all participants
-    final participantsSnapshot = await FirebaseFirestore.instance
-        .collection('participants')
-        .where('quiz_code', isEqualTo: quizCode)
-        .get();
-
-    for (var doc in participantsSnapshot.docs) {
-      batch.update(doc.reference, {'score': 0});
-    }
-
-    batch.update(FirebaseFirestore.instance.collection('quizzes').doc(quizId), {
+    await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update({
       'started': true,
       'currentQuestionIndex': 0,
       'ended': false,
     });
-
-    await batch.commit();
   }
 
   Future<void> _nextQuestion() async {
     if (_currentQuestionIndex + 1 < questions.length) {
       final batch = FirebaseFirestore.instance.batch();
-
-      // Reset answeredCurrentQuestion for all participants
       final participantsSnapshot = await FirebaseFirestore.instance
           .collection('participants')
           .where('quiz_code', isEqualTo: quizCode)
@@ -181,104 +156,264 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
     await batch.commit();
   }
 
-  Widget _buildWaitingRoom() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('participants')
-          .where('quiz_code', isEqualTo: quizCode)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const CircularProgressIndicator();
-        final participants = snapshot.data!.docs;
+  Widget _buildParticipantCard(DocumentSnapshot participant) {
+    final nickname = participant['nickname'] ?? 'Anonymous';
+    final score = (participant['score'] ?? 0).toInt();
+    final participantData = participant.data() as Map<String, dynamic>;
+    final answeredCurrent = participantData.containsKey('answeredCurrentQuestion') 
+        ? participantData['answeredCurrentQuestion'] == true 
+        : false;
+    final progress = maxPossibleScore > 0 ? score / maxPossibleScore : 0;
 
-        // print(participants);
-
-        return Column(
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Waiting for participants...",
-              style: TextStyle(fontSize: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  nickname,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '$score pts',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            ...participants
-                .map((doc) => Text(doc['nickname'] ?? 'Unnamed'))
-                .toList(),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _startQuiz,
-              child: const Text("Start Quiz"),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                answeredCurrent ? Colors.green : Theme.of(context).primaryColor,
+              ),
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(4),
             ),
+            if (answeredCurrent)
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text(
+                  'Answered',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitingRoom() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Participants",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('participants')
+                .where('quiz_code', isEqualTo: quizCode)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final participants = snapshot.data!.docs;
+
+              if (participants.isEmpty) {
+                return const Center(
+                  child: Text("No participants yet"),
+                );
+              }
+
+              return ListView.builder(
+                itemCount: participants.length,
+                itemBuilder: (context, index) {
+                  return _buildParticipantCard(participants[index]);
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: ElevatedButton(
+            onPressed: _startQuiz,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
+            child: const Text(
+              "Start Quiz",
+              style: TextStyle(fontSize: 18),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildQuestionUI() {
     final question = questions[_currentQuestionIndex];
+    final isLastQuestion = _currentQuestionIndex == questions.length - 1;
+    final imageUrl = question['imageUrl'] as String?;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Question ${_currentQuestionIndex + 1} of ${questions.length}',
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          question['question'] ?? 'No question text',
-          style: const TextStyle(fontSize: 16),
-        ),
-        const SizedBox(height: 10),
-        Text('Time remaining: $_countdown seconds'),
-        const SizedBox(height: 20),
-        FutureBuilder<QuerySnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('participants')
-              .where('quiz_code', isEqualTo: quizCode)
-              .get(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const CircularProgressIndicator();
-            final participants = snapshot.data!.docs;
-
-            final allAnswered = participants.any(
-              (p) => ((p.data() as Map<String, dynamic>).containsKey(
-                        'answeredCurrentQuestion',
-                      ) ==
-                      true &&
-                  (p['answeredCurrentQuestion'] ?? false) == true),
-            );
-
-            final isTimeUp = _countdown == 0;
-
-            if (allAnswered || isTimeUp) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        Card(
+          elevation: 2,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Question ${_currentQuestionIndex + 1}/${questions.length}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Chip(
+                      label: Text(
+                        '$_countdown s',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: _countdown <= 10
+                          ? Colors.red
+                          : Theme.of(context).primaryColor,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  question['question'] ?? 'No question text',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 12),
+                if (imageUrl != null && imageUrl.isNotEmpty)
+              Column(
                 children: [
-                  const Text(
-                    "Scores so far:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  ...participants.map(
-                    (p) => Text(
-                      "${p['nickname'] ?? 'Unnamed'}: ${p['score'] ?? 0} pts",
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 200,
+                      placeholder:
+                          (context, url) => Container(
+                            height: 200,
+                            width: double.infinity,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(),
+                          ),
+                      errorWidget:
+                          (context, url, error) => Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: Colors.grey[300],
+                            alignment: Alignment.center,
+                            child: const Text('Failed to load image'),
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _nextQuestion,
-                    child: const Text("Next Question"),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          "Participants",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('participants')
+                .where('quiz_code', isEqualTo: quizCode)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final participants = snapshot.data!.docs;
+              final allAnswered = participants.every(
+                  (p) => (p['answeredCurrentQuestion'] ?? false) == true);
+              final isTimeUp = _countdown == 0;
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: participants.length,
+                      itemBuilder: (context, index) {
+                        return _buildParticipantCard(participants[index]);
+                      },
+                    ),
                   ),
-                  OutlinedButton(
-                    onPressed: _endQuiz,
-                    child: const Text('End Quiz'),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _nextQuestion,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
+                        ),
+                        child: Text(
+                          isLastQuestion ? 'Show Results' : 'Next Question',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      OutlinedButton(
+                        onPressed: _endQuiz,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
+                        ),
+                        child: const Text(
+                          'End Quiz',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );
-            }
-
-            return const Text("Waiting for responses...");
-          },
+            },
+          ),
         ),
       ],
     );
@@ -298,20 +433,43 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Quiz Admin Panel")),
+      appBar: AppBar(
+        title: const Text("Quiz Admin Panel"),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: !started
             ? _buildWaitingRoom()
             : ended
-                ? const Center(
-                    child:
-                        Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.celebration,
+                          size: 80,
+                          color: Colors.amber,
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Quiz Completed!',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Back to Quiz Details'),
+                        ),
+                      ],
+                    ),
                   )
                 : (_currentQuestionIndex >= 0 &&
                         _currentQuestionIndex < questions.length)
                     ? _buildQuestionUI()
-                    : const Center(child: Text("Invalid Question")),
+                    : const Center(child: Text("Preparing quiz...")),
       ),
     );
   }
