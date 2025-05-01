@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:lottie/lottie.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class PlayQuizScreen extends StatefulWidget {
   final String quizCode;
@@ -12,7 +15,12 @@ class PlayQuizScreen extends StatefulWidget {
   State<PlayQuizScreen> createState() => _PlayQuizScreenState();
 }
 
-class _PlayQuizScreenState extends State<PlayQuizScreen> {
+class _PlayQuizScreenState extends State<PlayQuizScreen>
+    with SingleTickerProviderStateMixin {
+  // Add these new variables for animation
+  late AnimationController _countdownController;
+  late Animation<double> _progressAnimation;
+
   final TextEditingController _nicknameController = TextEditingController();
   bool _joining = true;
   bool _submitted = false;
@@ -29,28 +37,38 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize animation controller
+    _countdownController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Initialize progress animation
+    _progressAnimation = Tween<double>(begin: 1.0, end: 1.0).animate(
+      CurvedAnimation(parent: _countdownController, curve: Curves.easeInOut),
+    );
+
     _checkIfAlreadyJoined();
   }
 
   @override
   void dispose() {
+    _countdownController.dispose();
     _timer?.cancel();
     _quizListener?.cancel();
     _quizListener = null;
-
-    // Remove the participant from Firestore when the screen is disposed
     _removeParticipant();
-
     super.dispose();
   }
 
   Future<void> _checkIfAlreadyJoined() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('participants')
-        .doc(uid)
-        .get();
+    final doc =
+        await FirebaseFirestore.instance
+            .collection('participants')
+            .doc(uid)
+            .get();
 
     if (doc.exists) {
       setState(() {
@@ -71,7 +89,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     if (nickname.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Please enter a nickname")));
+      ).showSnackBar(const SnackBar(content: Text("Please enter a nickname")));
       return;
     }
 
@@ -106,59 +124,78 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
             .doc(quizId)
             .snapshots()
             .listen((docSnapshot) {
-          final data = docSnapshot.data();
-          if (data == null) return;
+              final data = docSnapshot.data();
+              if (data == null) return;
 
-          final started = data['started'] ?? false;
-          final ended = data['ended'] ?? false;
-          final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
-          final questions = data['questions'] ?? [];
+              final started = data['started'] ?? false;
+              final ended = data['ended'] ?? false;
+              final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
+              final questions = data['questions'] ?? [];
 
-          if (started && !_quizStarted) {
-            _quizStarted = true;
-          }
+              if (started && !_quizStarted) {
+                _quizStarted = true;
+              }
 
-          if (!started) {
-            _currentQuestionIndex = -1;
-          }
+              if (!started) {
+                _currentQuestionIndex = -1;
+              }
 
-          _quizEnded = ended;
+              _quizEnded = ended;
 
-          if (_currentQuestionIndex != currentQuestionIndex) {
-            _selectedAnswer = null;
-            _hasAnswered = false;
-            _startCountdown();
-          }
+              if (_currentQuestionIndex != currentQuestionIndex) {
+                _selectedAnswer = null;
+                _hasAnswered = false;
+                _startCountdown();
+              }
 
-          setState(() {
-            _quizStarted = started;
-            _currentQuestionIndex = currentQuestionIndex;
-            _questions = questions;
-          });
-        });
+              setState(() {
+                _quizStarted = started;
+                _currentQuestionIndex = currentQuestionIndex;
+                _questions = questions;
+              });
+            });
       }
     });
   }
 
   void _startCountdown() {
-    _countdown = _questions[_currentQuestionIndex + 1]['duration'].toInt();
+    final duration = _questions[_currentQuestionIndex + 1]['duration'].toInt();
+    _countdown = duration;
+
+    // Update the progress animation
+    _updateProgressAnimation(_countdown / duration);
+
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown <= 0) {
         timer.cancel();
         if (!_hasAnswered) {
-          _submitAnswer(null); // Submit no answer
+          _submitAnswer(null);
         }
       } else {
         setState(() {
           _countdown--;
+          _updateProgressAnimation(_countdown / duration);
         });
       }
     });
   }
 
+  void _updateProgressAnimation(double newValue) {
+    _progressAnimation = Tween<double>(
+      begin: _progressAnimation.value,
+      end: newValue,
+    ).animate(
+      CurvedAnimation(parent: _countdownController, curve: Curves.easeInOut),
+    );
+    _countdownController.forward(from: 0);
+  }
+
   Future<void> _submitAnswer(String? answer) async {
     if (_hasAnswered) return;
+
+    // Cancel the timer when an answer is submitted
+    _timer?.cancel();
 
     _hasAnswered = true;
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -167,23 +204,21 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     final correct =
         question['options'].indexOf(answer) == question['correctAnswerIndex'];
 
-    final participantRef =
-        FirebaseFirestore.instance.collection('participants').doc(uid);
+    final participantRef = FirebaseFirestore.instance
+        .collection('participants')
+        .doc(uid);
 
-    // Start a batch to ensure both updates happen together
     final batch = FirebaseFirestore.instance.batch();
 
     if (correct) {
-      int scoreIncrement =
-          _countdown; // Use the remaining countdown time as a score multiplier
-      batch.update(
-          participantRef, {'score': FieldValue.increment(scoreIncrement)});
+      int scoreIncrement = _countdown;
+      batch.update(participantRef, {
+        'score': FieldValue.increment(scoreIncrement),
+      });
     }
 
-    // Update answeredCurrentQuestion to true regardless of correctness
     batch.update(participantRef, {'answeredCurrentQuestion': true});
 
-    // Commit the batch
     await batch.commit();
 
     setState(() {
@@ -204,6 +239,42 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     }
   }
 
+  // Helper methods for option styling
+  Color _getOptionBackgroundColor({
+    required bool isSelected,
+    required bool isCorrectSelection,
+    required bool isWrongSelection,
+    required bool timeIsUp,
+  }) {
+    if (timeIsUp) return Colors.grey[100]!;
+    if (isCorrectSelection) return Colors.green[50]!;
+    if (isWrongSelection) return Colors.red[50]!;
+    if (isSelected) return Theme.of(context).primaryColor.withOpacity(0.1);
+    return Colors.white;
+  }
+
+  Color _getOptionBorderColor({
+    required bool isSelected,
+    required bool isCorrectSelection,
+    required bool isWrongSelection,
+  }) {
+    if (isCorrectSelection) return Colors.green;
+    if (isWrongSelection) return Colors.red;
+    if (isSelected) return Theme.of(context).primaryColor;
+    return Colors.grey[300]!;
+  }
+
+  Color _getOptionTextColor({
+    required bool isSelected,
+    required bool isCorrectSelection,
+    required bool isWrongSelection,
+  }) {
+    if (isCorrectSelection) return Colors.green[800]!;
+    if (isWrongSelection) return Colors.red[800]!;
+    if (isSelected) return Theme.of(context).primaryColor;
+    return Colors.grey[800]!;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_joining) {
@@ -216,20 +287,32 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text('Enter your nickname to join the quiz:'),
-              const SizedBox(height: 12),
+              Lottie.asset(
+                'assets/animations/join.json',
+                width: 150,
+                height: 150,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Enter your nickname',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _nicknameController,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Nickname',
+                  prefixIcon: Icon(Icons.person),
                 ),
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: _joinQuiz,
-                child: const Text('Join Quiz'),
+                icon: const Icon(Icons.login),
+                label: const Text('Join Quiz'),
               ),
             ],
           ),
@@ -240,16 +323,40 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
     if (!_quizStarted) {
       return Scaffold(
         appBar: AppBar(title: const Text('Quiz Lobby')),
-        body: const Center(child: Text('Waiting for quiz to start...')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Lottie.asset('animations/waiting.json', width: 200, height: 200),
+              const SizedBox(height: 20),
+              const Text(
+                'Waiting for quiz to start...',
+                style: TextStyle(fontSize: 18),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     if (_quizEnded) {
       return Scaffold(
-          appBar: AppBar(title: const Text('Quiz Lobby')),
-          body: const Center(
-            child: Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
-          ));
+        appBar: AppBar(title: const Text('Quiz Ended')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset(
+                'assets/animations/celebration.json',
+                width: 200,
+                height: 200,
+              ),
+              const SizedBox(height: 20),
+              const Text('Quiz Ended 🎉', style: TextStyle(fontSize: 20)),
+            ],
+          ),
+        ),
+      );
     }
 
     if (_currentQuestionIndex == -1 ||
@@ -281,53 +388,141 @@ class _PlayQuizScreenState extends State<PlayQuizScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      imageUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: 200,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 200,
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
+                      placeholder:
+                          (context, url) => Container(
+                            height: 200,
+                            width: double.infinity,
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(),
                           ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          width: double.infinity,
-                          color: Colors.grey[300],
-                          alignment: Alignment.center,
-                          child: const Text('Failed to load image'),
-                        );
-                      },
+                      errorWidget:
+                          (context, url, error) => Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: Colors.grey[300],
+                            alignment: Alignment.center,
+                            child: const Text('Failed to load image'),
+                          ),
                     ),
                   ),
                   const SizedBox(height: 16),
                 ],
               ),
-            Text(
-              'Time left: $_countdown seconds',
-              style: const TextStyle(fontSize: 16, color: Colors.red),
+            // Inside the Scaffold where the countdown was displayed:
+            AnimatedBuilder(
+              animation:
+                  _countdownController, // You'll need to create an AnimationController
+              builder: (context, child) {
+                return LinearProgressIndicator(
+                  value: _progressAnimation.value,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _countdown <= 10
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                  minHeight: 8,
+                );
+              },
             ),
             const SizedBox(height: 16),
             ...options.map((option) {
               final isSelected = option == _selectedAnswer;
-              return ListTile(
-                title: Text(option),
-                tileColor: isSelected ? Colors.blue[100] : null,
-                onTap: () => _submitAnswer(option),
+              final correctAnswer =
+                  question['options'][question['correctAnswerIndex']];
+              final isCorrectSelection =
+                  _hasAnswered && isSelected && option == correctAnswer;
+              final isWrongSelection =
+                  _hasAnswered && isSelected && option != correctAnswer;
+              final _timeIsUp = _countdown <= 0;
+
+              // Enhanced styling with animations
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Animate(
+                  effects: [
+                    FadeEffect(duration: 300.ms),
+                    SlideEffect(begin: const Offset(0.2, 0)),
+                  ],
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap:
+                          _hasAnswered || _timeIsUp
+                              ? null
+                              : () => _submitAnswer(option),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _getOptionBackgroundColor(
+                            isSelected: isSelected,
+                            isCorrectSelection: isCorrectSelection,
+                            isWrongSelection: isWrongSelection,
+                            timeIsUp: _timeIsUp,
+                          ),
+                          border: Border.all(
+                            color: _getOptionBorderColor(
+                              isSelected: isSelected,
+                              isCorrectSelection: isCorrectSelection,
+                              isWrongSelection: isWrongSelection,
+                            ),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                option,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                  color: _getOptionTextColor(
+                                    isSelected: isSelected,
+                                    isCorrectSelection: isCorrectSelection,
+                                    isWrongSelection: isWrongSelection,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (!_hasAnswered && isSelected)
+                              Icon(
+                                Icons.radio_button_checked,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            if (!_hasAnswered && !isSelected)
+                              const Icon(
+                                Icons.radio_button_off,
+                                color: Colors.grey,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               );
-            }),
+            }).toList(),
           ],
+          
         ),
       ),
     );
