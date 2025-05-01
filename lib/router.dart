@@ -6,6 +6,7 @@ import 'package:quizify/screens/add_quiz_screen.dart';
 import 'package:quizify/screens/join_quiz_screen.dart';
 import 'package:quizify/screens/onboarding_screen.dart';
 import 'package:quizify/screens/quiz_detail_screen.dart';
+import 'package:quizify/screens/quiz_view_edit_screen.dart';
 import 'package:quizify/screens/settings_screen.dart';
 import 'package:quizify/screens/signup_screen.dart';
 import 'screens/login_screen.dart';
@@ -59,8 +60,8 @@ final GoRouter router = GoRouter(
         ),
         GoRoute(
           path: 'signup',
-          builder: (BuildContext context, GoRouterState state) =>
-              SignUpScreen(),
+          builder:
+              (BuildContext context, GoRouterState state) => SignUpScreen(),
         ),
       ],
     ),
@@ -81,8 +82,8 @@ final GoRouter router = GoRouter(
       routes: [
         GoRoute(
           path: '/join',
-          builder: (BuildContext context, GoRouterState state) =>
-              JoinQuizScreen(),
+          builder:
+              (BuildContext context, GoRouterState state) => JoinQuizScreen(),
         ),
         // GoRoute(
         //   path: '/play',
@@ -110,10 +111,11 @@ final GoRouter router = GoRouter(
       routes: [
         GoRoute(
           path: 'creator',
-          builder: (context, state) => Scaffold(
-            appBar: AppBar(title: const Text('Creator')),
-            body: Center(child: Text('Creator Home')),
-          ),
+          builder:
+              (context, state) => Scaffold(
+                appBar: AppBar(title: const Text('Creator')),
+                body: Center(child: Text('Creator Home')),
+              ),
           routes: [
             ShellRoute(
               builder: (context, state, child) {
@@ -170,13 +172,22 @@ final GoRouter router = GoRouter(
               builder: (context, state) => AddQuizScreen(),
             ),
             GoRoute(
-                path:
-                    'details/:quiz_id', // ✅ Relative to /creator, becomes /app/creator/add
-                name: 'quiz_details',
-                builder: (context, state) {
-                  final quizId = state.pathParameters['quiz_id']!;
-                  return QuizDetailScreen(quiz_id: quizId);
-                }),
+              path:
+                  'details/:quiz_id', // ✅ Relative to /creator, becomes /app/creator/add
+              name: 'quiz_details',
+              builder: (context, state) {
+                final quizId = state.pathParameters['quiz_id']!;
+                return QuizDetailScreen(quiz_id: quizId);
+              },
+            ),
+            GoRoute(
+              path: 'view/:quiz_id',
+              name: 'quiz_view',
+              builder:
+                  (context, state) => QuizViewEditScreen(
+                    quizId: state.pathParameters['quiz_id']!,
+                  ),
+            ),
           ],
         ),
       ],
