@@ -799,33 +799,33 @@ class _QuizViewScreenState extends State<QuizViewScreen> {
             },
           ),
           actions: [
-            if (!_isLoading && !_isEditing)
-              IconButton(
-                icon: Icon(Icons.delete_outline),
-                onPressed: _confirmDeleteQuiz,
-                tooltip: 'Delete Quiz',
-              ),
-            if (!_isLoading)
-              _isEditing
-                  ? _isSaving
-                      ? Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                      : TextButton.icon(
-                        onPressed: _hasChanges ? _saveQuizChanges : null,
-                        icon: Icon(Icons.save),
-                        label: Text("Save"),
-                      )
-                  : TextButton.icon(
-                    onPressed: _toggleEditMode,
-                    icon: Icon(Icons.edit),
-                    label: Text("Edit"),
-                  ),
+            // if (!_isLoading && !_isEditing)
+            //   IconButton(
+            //     icon: Icon(Icons.delete_outline),
+            //     onPressed: _confirmDeleteQuiz,
+            //     tooltip: 'Delete Quiz',
+            //   ),
+            // if (!_isLoading)
+            //   _isEditing
+            //       ? _isSaving
+            //           ? Padding(
+            //             padding: EdgeInsets.symmetric(horizontal: 16),
+            //             child: SizedBox(
+            //               width: 24,
+            //               height: 24,
+            //               child: CircularProgressIndicator(strokeWidth: 2),
+            //             ),
+            //           )
+            //           : TextButton.icon(
+            //             onPressed: _hasChanges ? _saveQuizChanges : null,
+            //             icon: Icon(Icons.save),
+            //             label: Text("Save"),
+            //           )
+            //       : TextButton.icon(
+            //         onPressed: _toggleEditMode,
+            //         icon: Icon(Icons.edit),
+            //         label: Text("Edit"),
+            //       ),
           ],
         ),
         body:

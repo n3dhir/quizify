@@ -5,9 +5,11 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:quizify/screens/admin_quiz_play_screen.dart';
 import 'package:quizify/services/quizz_service.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -31,6 +33,7 @@ class _QuizEditScreenState extends State<QuizEditScreen> {
 
   List<Map<String, dynamic>> _questions = [];
   String _quizCode = '';
+  Map<String, dynamic>? quizData;
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _QuizEditScreenState extends State<QuizEditScreen> {
         return;
       }
       final data = quizDoc.data()!;
+      quizData = data;
       _quizTitleController.text = data['title'] ?? '';
       _quizCode = data['quiz_code'] ?? '';
 
@@ -386,6 +390,7 @@ class _QuizEditScreenState extends State<QuizEditScreen> {
                 ),
                 TextButton.icon(
                   onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _quizCode));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Quiz code copied to clipboard')),
                     );
@@ -424,10 +429,22 @@ class _QuizEditScreenState extends State<QuizEditScreen> {
                 SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed:
-                        () => ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Starting quiz...')),
+                    onPressed: () {
+                      debugPrint('${_questions}');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => AdminQuizPlayScreen(
+                                quizData: {
+                                  'id': _quizCode,
+                                  ...?quizData
+                                },
+                              ),
                         ),
+                      );
+                    },
+
                     icon: Icon(Icons.play_arrow),
                     label: Text('Start Quiz'),
                     style: ElevatedButton.styleFrom(

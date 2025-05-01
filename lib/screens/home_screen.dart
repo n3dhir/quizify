@@ -456,27 +456,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       //     ? userSnapshot.data!.get('username') ?? 'Unknown User'
                                       //     : 'Unknown User';
                                       return Row(
-                                        children: [
-                                          Icon(
-                                            Icons.person,
-                                            size: 14,
-                                            color: colorScheme.onSurfaceVariant,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              'By me',
-                                              style: textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        colorScheme
-                                                            .onSurfaceVariant,
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
+                                        // children: [
+                                        //   Icon(
+                                        //     Icons.person,
+                                        //     size: 14,
+                                        //     color: colorScheme.onSurfaceVariant,
+                                        //   ),
+                                        //   SizedBox(width: 4),
+                                        //   Expanded(
+                                        //     child: Text(
+                                        //         '',
+                                        //       style: textTheme.bodySmall
+                                        //           ?.copyWith(
+                                        //             color:
+                                        //                 colorScheme
+                                        //                     .onSurfaceVariant,
+                                        //           ),
+                                        //       maxLines: 1,
+                                        //       overflow: TextOverflow.ellipsis,
+                                        //     ),
+                                        //   ),
+                                        // ],
+                                      
                                       );
                                     },
                                   ),
