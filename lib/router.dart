@@ -6,7 +6,8 @@ import 'package:quizify/screens/add_quiz_screen.dart';
 import 'package:quizify/screens/join_quiz_screen.dart';
 import 'package:quizify/screens/onboarding_screen.dart';
 import 'package:quizify/screens/quiz_detail_screen.dart';
-import 'package:quizify/screens/quiz_view_edit_screen.dart';
+import 'package:quizify/screens/quiz_edit_screen.dart';
+import 'package:quizify/screens/quiz_view_screen.dart';
 import 'package:quizify/screens/settings_screen.dart';
 import 'package:quizify/screens/signup_screen.dart';
 import 'screens/login_screen.dart';
@@ -184,9 +185,15 @@ final GoRouter router = GoRouter(
               path: 'view/:quiz_id',
               name: 'quiz_view',
               builder:
-                  (context, state) => QuizViewEditScreen(
-                    quizId: state.pathParameters['quiz_id']!,
-                  ),
+                  (context, state) =>
+                      QuizViewScreen(quizId: state.pathParameters['quiz_id']!),
+            ),
+            GoRoute(
+              path: 'edit/:quiz_id',
+              name: 'quiz_edit',
+              builder:
+                  (context, state) =>
+                      QuizEditScreen(quizId: state.pathParameters['quiz_id']!),
             ),
           ],
         ),
