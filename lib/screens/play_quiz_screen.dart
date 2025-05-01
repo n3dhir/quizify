@@ -97,6 +97,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
       'uid': uid,
       'quiz_code': widget.quizCode,
       'joined_at': FieldValue.serverTimestamp(),
+      'answeredCurrentQuestion': false, // Initialize here
       'nickname': nickname,
       'score': 0,
     });
