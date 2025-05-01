@@ -8,6 +8,7 @@ import 'package:quizify/providers/auth_provider.dart' as quizify_auth;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -139,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               decoration: InputDecoration(
                                 hintText: 'Search quizzes...',
                                 hintStyle: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 11,
                                   color: colorScheme.onSurface.withOpacity(0.6),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(
@@ -158,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   color: colorScheme.primary,
                                 ),
                               ),
-                              style: textTheme.bodyMedium,
+                              style: textTheme.bodySmall,
                               onChanged: (value) {
                                 setState(() {
                                   _searchQuery = value;
@@ -866,10 +867,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       _buildChip(
                         quiz['isPublic'] == true ? 'Public' : 'Private',
                         quiz['isPublic'] == true
-                            ? colorScheme.tertiary
+                            ? Colors.blue
                             : colorScheme.secondary,
                         quiz['isPublic'] == true
-                            ? colorScheme.onTertiary
+                            ? Colors.blue
                             : colorScheme.onSecondary,
                       ),
                       Material(
@@ -963,9 +964,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ListTile(
                 leading: Icon(Icons.share, color: colorScheme.primary),
                 title: Text('Share Quiz'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Implement share functionality
+
+                onTap: () async {
+                  // get the share sheet’s position (optional; improves tablet/UI placement)
+                  final box = context.findRenderObject() as RenderBox?;
+                  await SharePlus.instance.share(
+                    ShareParams(
+                      text:
+                          'Join my quiz on Quizify!\nQuiz Code: code\nhttps://quizify.app/play?code=code',
+                      subject: 'Quizify Quiz Invite',
+                      sharePositionOrigin:
+                          box!.localToGlobal(Offset.zero) & box!.size,
+                    ),
+                  );
                 },
               ),
               ListTile(
