@@ -28,6 +28,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
   bool _quizEnded = false;
   int _currentQuestionIndex = -1;
   List<dynamic> _questions = [];
+  String _quiz_title = "";
   String? _selectedAnswer;
   StreamSubscription<DocumentSnapshot>? _quizListener;
   int _countdown = 30;
@@ -132,7 +133,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
               final ended = data['ended'] ?? false;
               final currentQuestionIndex = data['currentQuestionIndex'] ?? -1;
               final questions = data['questions'] ?? [];
-
+              _quiz_title = data['title'] ?? "";
               if (started && !_quizStarted) {
                 _quizStarted = true;
               }
@@ -323,12 +324,12 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
 
     if (!_quizStarted) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Quiz Lobby')),
+        appBar: AppBar(title: Text(_quiz_title.toString())),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Lottie.asset('animations/waiting.json', width: 200, height: 200),
+              Lottie.asset('/animations/waiting.json', width: 200, height: 200),
               const SizedBox(height: 20),
               const Text(
                 'Waiting for quiz to start...',
@@ -345,7 +346,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
         appBar: AppBar(title: const Text('Quiz Ended')),
         body: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Lottie.asset(
                 '/animations/celebration.json',

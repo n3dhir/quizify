@@ -107,7 +107,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
             _PodiumStep(
               participant: winners[1],
               position: 2,
-              height: 100,
+              height: 130,
               color: Colors.blueGrey[300]!,
             ),
           if (winners.isNotEmpty)
@@ -121,7 +121,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
             _PodiumStep(
               participant: winners[2],
               position: 3,
-              height: 80,
+              height: 110,
               color: Colors.brown[300]!,
             ),
         ],
@@ -173,6 +173,7 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
     _startCountdownTimer?.cancel();
     _pulseController.dispose();
     _confettiController.dispose();
+    _resetQuizState();
     super.dispose();
   }
 
@@ -430,6 +431,18 @@ class _AdminQuizPlayScreenState extends State<AdminQuizPlayScreen>
 
     return Column(
       children: [
+        Align(
+          alignment: Alignment.topLeft,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+          Navigator.of(context).pop();
+              },
+            ),
+          ),
+        ),
         Text(
           'Quiz Results',
           style: TextStyle(
