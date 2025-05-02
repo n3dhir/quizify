@@ -348,7 +348,7 @@ class _PlayQuizScreenState extends State<PlayQuizScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Lottie.asset(
-                'assets/animations/celebration.json',
+                '/animations/celebration.json',
                 width: 200,
                 height: 200,
               ),
