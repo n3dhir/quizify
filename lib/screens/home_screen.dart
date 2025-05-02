@@ -566,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       clonedQuiz['creator_id'] = currentUserId;
       clonedQuiz['title'] = '${clonedQuiz['title']} (Clone)';
       clonedQuiz['isPublic'] = false;
-      clonedQuiz['created_at'] = Timestamp.now();
+      clonedQuiz['createdAt'] = Timestamp.now();
 
       // Add to the user's quizzes
       final docRef = await FirebaseFirestore.instance
@@ -732,7 +732,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     int questionCount,
     double aspectRatio,
   ) {
-    final creationDate = (quiz['created_at'] as Timestamp?)?.toDate();
+    final creationDate = (quiz['createdAt'] as Timestamp?)?.toDate();
     final formattedDate =
         creationDate != null
             ? '${creationDate.day}/${creationDate.month}/${creationDate.year}'
